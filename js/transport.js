@@ -163,11 +163,76 @@ window.fetchLRTCustom = async function() {
   await fetchLRT(sel.value, 't-lrt-custom');
 };
 
+/* ── MTR Service Status ──────────────────────────────────────── */
+// Lines to check: line code | representative station
+const MTR_STATUS_LINES = [
+  { line: 'AEL', sta: 'AWE', label: '機場快線' },
+  { line: 'TCL', sta: 'TUC', label: '東涌線' },
+  { line: 'TML', sta: 'TUM', label: '屯馬線' },
+  { line: 'EAL', sta: 'FOT', label: '東鐵線' },
+  { line: 'KTL', sta: 'KOT', label: '觀塘線' },
+  { line: 'TWL', sta: 'TSW', label: '荃灣線' },
+  { line: 'ISL', sta: 'KWN', label: '港島線' },
+  { line: 'SIL', sta: 'OCP', label: '南港島線' },
+];
+
+async function fetchMTRLineStatus(line, sta) {
+  try {
+    const url = MTR_API + '?line=' + encodeURIComponent(line) + '&sta=' + encodeURIComponent(sta);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const d = await res.json();
+    return {
+      status: d.status,
+      message: d.message || d.url || ''
+    };
+  } catch (e) {
+    return { status: -1, message: '無法連接' };
+  }
+}
+
+async function renderMTRStatus() {
+  const el = document.getElementById('t-mtr-status');
+  if (!el) return;
+  el.innerHTML = skelHtml(1);
+
+  const results = await Promise.all(
+    MTR_STATUS_LINES.map(async function(info) {
+      const r = await fetchMTRLineStatus(info.line, info.sta);
+      return { label: info.label, line: info.line, ...r };
+    })
+  );
+
+  el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:var(--sp-2)">' +
+    results.map(function(r) {
+      if (r.status === 1 || r.status === '1') {
+        return '<div class="row-item" style="flex-direction:column;align-items:flex-start;gap:4px;min-width:110px;flex:1">' +
+          '<span style="font-size:var(--text-xs);color:var(--text-muted);font-weight:600">' + r.label + '</span>' +
+          '<span class="tag tag-green" style="font-size:11px">✓ 正常</span>' +
+          '</div>';
+      } else if (r.status === 0 || r.status === '0') {
+        const msg = r.message ? '<div style="font-size:10px;color:var(--error);margin-top:2px;line-height:1.4">' + r.message + '</div>' : '';
+        return '<div class="row-item" style="flex-direction:column;align-items:flex-start;gap:4px;min-width:110px;flex:1;border-color:var(--error)">' +
+          '<span style="font-size:var(--text-xs);color:var(--text-muted);font-weight:600">' + r.label + '</span>' +
+          '<span class="tag tag-red" style="font-size:11px">⚠ 服務受阻</span>' +
+          msg +
+          '</div>';
+      } else {
+        return '<div class="row-item" style="flex-direction:column;align-items:flex-start;gap:4px;min-width:110px;flex:1">' +
+          '<span style="font-size:var(--text-xs);color:var(--text-muted);font-weight:600">' + r.label + '</span>' +
+          '<span class="tag tag-muted" style="font-size:11px">— 未知</span>' +
+          '</div>';
+      }
+    }).join('') +
+  '</div>';
+}
+
 /* ── Public API ──────────────────────────────────────────────── */
 window.Transport = {
   fetchDefaultMTR: fetchDefaultMTR,
   fetchDefaultLRT: fetchDefaultLRT,
+  renderMTRStatus: renderMTRStatus,
   refresh: async function() {
-    await Promise.all([fetchDefaultMTR(), fetchDefaultLRT()]);
+    await Promise.all([fetchDefaultMTR(), fetchDefaultLRT(), renderMTRStatus()]);
   }
 };

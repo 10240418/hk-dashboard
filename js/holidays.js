@@ -256,6 +256,155 @@ const Holidays = (function() {
     }).filter(h => !isNaN(h.date.getTime())).sort((a, b) => a.date - b.date);
   }
 
+
+  /* ── Solar terms 二十四節氣 ────────────────────────────────── */
+  const SOLAR_TERMS_2025 = [
+    { name:'小寒', en:'Minor Cold',        date: new Date(2025, 0, 5)  },
+    { name:'大寒', en:'Major Cold',        date: new Date(2025, 0, 20) },
+    { name:'立春', en:'Start of Spring',   date: new Date(2025, 1, 3)  },
+    { name:'雨水', en:'Rain Water',        date: new Date(2025, 1, 18) },
+    { name:'驚蟄', en:'Awakening of Insects', date: new Date(2025, 2, 5) },
+    { name:'春分', en:'Spring Equinox',    date: new Date(2025, 2, 20) },
+    { name:'清明', en:'Clear and Bright',  date: new Date(2025, 3, 4)  },
+    { name:'穀雨', en:'Grain Rain',        date: new Date(2025, 3, 20) },
+    { name:'立夏', en:'Start of Summer',   date: new Date(2025, 4, 5)  },
+    { name:'小滿', en:'Grain Buds',        date: new Date(2025, 4, 21) },
+    { name:'芒種', en:'Grain in Ear',      date: new Date(2025, 5, 5)  },
+    { name:'夏至', en:'Summer Solstice',   date: new Date(2025, 5, 21) },
+    { name:'小暑', en:'Minor Heat',        date: new Date(2025, 6, 7)  },
+    { name:'大暑', en:'Major Heat',        date: new Date(2025, 6, 22) },
+    { name:'立秋', en:'Start of Autumn',   date: new Date(2025, 7, 7)  },
+    { name:'處暑', en:'End of Heat',       date: new Date(2025, 7, 22) },
+    { name:'白露', en:'White Dew',         date: new Date(2025, 8, 7)  },
+    { name:'秋分', en:'Autumnal Equinox',  date: new Date(2025, 8, 22) },
+    { name:'寒露', en:'Cold Dew',          date: new Date(2025, 9, 8)  },
+    { name:'霜降', en:'Frost Descent',  date: new Date(2025, 9, 23) },
+    { name:'立冬', en:'Start of Winter',   date: new Date(2025, 10, 7) },
+    { name:'小雪', en:'Minor Snow',        date: new Date(2025, 10, 22)},
+    { name:'大雪', en:'Major Snow',        date: new Date(2025, 11, 7) },
+    { name:'冬至', en:'Winter Solstice',   date: new Date(2025, 11, 21)},
+  ];
+
+  const SOLAR_TERMS_2026 = [
+    { name:'小寒', en:'Minor Cold',        date: new Date(2026, 0, 5)  },
+    { name:'大寒', en:'Major Cold',        date: new Date(2026, 0, 20) },
+    { name:'立春', en:'Start of Spring',   date: new Date(2026, 1, 4)  },
+    { name:'雨水', en:'Rain Water',        date: new Date(2026, 1, 19) },
+    { name:'驚蟄', en:'Awakening of Insects', date: new Date(2026, 2, 6) },
+    { name:'春分', en:'Spring Equinox',    date: new Date(2026, 2, 20) },
+    { name:'清明', en:'Clear and Bright',  date: new Date(2026, 3, 5)  },
+    { name:'穀雨', en:'Grain Rain',        date: new Date(2026, 3, 20) },
+    { name:'立夏', en:'Start of Summer',   date: new Date(2026, 4, 5)  },
+    { name:'小滿', en:'Grain Buds',        date: new Date(2026, 4, 21) },
+    { name:'芒種', en:'Grain in Ear',      date: new Date(2026, 5, 6)  },
+    { name:'夏至', en:'Summer Solstice',   date: new Date(2026, 5, 21) },
+    { name:'小暑', en:'Minor Heat',        date: new Date(2026, 6, 7)  },
+    { name:'大暑', en:'Major Heat',        date: new Date(2026, 6, 23) },
+    { name:'立秋', en:'Start of Autumn',   date: new Date(2026, 7, 7)  },
+    { name:'處暑', en:'End of Heat',       date: new Date(2026, 7, 23) },
+    { name:'白露', en:'White Dew',         date: new Date(2026, 8, 8)  },
+    { name:'秋分', en:'Autumnal Equinox',  date: new Date(2026, 8, 23) },
+    { name:'寒露', en:'Cold Dew',          date: new Date(2026, 9, 8)  },
+    { name:'霜降', en:'Frost Descent',  date: new Date(2026, 9, 23) },
+    { name:'立冬', en:'Start of Winter',   date: new Date(2026, 10, 7) },
+    { name:'小雪', en:'Minor Snow',        date: new Date(2026, 10, 22)},
+    { name:'大雪', en:'Major Snow',        date: new Date(2026, 11, 7) },
+    { name:'冬至', en:'Winter Solstice',   date: new Date(2026, 11, 22)},
+  ];
+
+  function getAllSolarTerms() {
+    return [...SOLAR_TERMS_2025, ...SOLAR_TERMS_2026].sort((a, b) => a.date - b.date);
+  }
+
+  /* ── Render solar terms section ─────────────────────────── */
+  function renderSolarTerms() {
+    const el = document.getElementById('hol-solar-terms');
+    if (!el) return;
+
+    const now   = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const all   = getAllSolarTerms();
+
+    // Find current (most recent past or today)
+    const past = all.filter(t => t.date <= today);
+    const current = past.length > 0 ? past[past.length - 1] : null;
+
+    // Find next upcoming
+    const next = all.find(t => t.date > today);
+
+    if (!current && !next) {
+      el.innerHTML = `<div style="color:var(--text-faint);font-size:var(--text-xs)">節氣數據不可用</div>`;
+      return;
+    }
+
+    const nextDays = next ? Math.round((next.date - today) / 86400000) : null;
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-4);margin-bottom:var(--sp-4)">
+        ${current ? `
+          <div style="padding:var(--sp-4);background:var(--surface-2);border-radius:var(--r-lg);
+                      border-left:3px solid var(--teal)">
+            <div style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:var(--sp-2)">
+              當前節氣 Current Term
+            </div>
+            <div style="font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:700;
+                        color:var(--teal)">${current.name}</div>
+            <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-1)">
+              ${current.en}
+            </div>
+            <div style="font-size:var(--text-xs);color:var(--text-faint);margin-top:var(--sp-1);
+                        font-family:var(--font-mono)">
+              ${current.date.getFullYear()}年${current.date.getMonth()+1}月${current.date.getDate()}日
+            </div>
+          </div>
+        ` : '<div></div>'}
+        ${next ? `
+          <div style="padding:var(--sp-4);background:var(--surface-2);border-radius:var(--r-lg);
+                      border-left:3px solid var(--primary)">
+            <div style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:var(--sp-2)">
+              下個節氣 Next Term
+            </div>
+            <div style="font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:700;
+                        color:var(--primary)">${next.name}</div>
+            <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--sp-1)">
+              ${next.en}
+            </div>
+            <div style="font-size:var(--text-xs);color:var(--text-faint);margin-top:var(--sp-1);
+                        font-family:var(--font-mono)">
+              ${next.date.getFullYear()}年${next.date.getMonth()+1}月${next.date.getDate()}日
+              · 還有 <span style="color:var(--primary);font-weight:700">${nextDays}</span> 天
+            </div>
+          </div>
+        ` : '<div></div>'}
+      </div>
+
+      <!-- All upcoming solar terms list -->
+      <div style="font-size:var(--text-xs);font-weight:700;color:var(--text-faint);
+                  text-transform:uppercase;letter-spacing:.06em;margin-bottom:var(--sp-2)">
+        2026 年二十四節氣
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:var(--sp-2)">
+        ${SOLAR_TERMS_2026.map(t => {
+          const isToday = t.date.getTime() === today.getTime();
+          const isPast  = t.date < today;
+          const isNext  = next && t.date.getTime() === next.date.getTime();
+          const bg = isToday ? 'var(--success-bg)' : isNext ? 'var(--primary-lt)' : isPast ? 'var(--surface-2)' : 'var(--surface-2)';
+          const color = isToday ? 'var(--success)' : isNext ? 'var(--primary)' : isPast ? 'var(--text-faint)' : 'var(--text)';
+          const opacity = isPast && !isToday ? '0.5' : '1';
+          const mm = String(t.date.getMonth()+1).padStart(2,'0');
+          const dd = String(t.date.getDate()).padStart(2,'0');
+          return `
+            <div style="padding:var(--sp-2) var(--sp-3);background:\${bg};border-radius:var(--r-md);
+                        opacity:\${opacity};text-align:center;min-width:56px">
+              <div style="font-size:12px;font-weight:700;color:\${color}">\${t.name}</div>
+              <div style="font-size:9px;color:var(--text-faint);font-family:var(--font-mono)">\${mm}/\${dd}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
   /* ── Main fetch + render ──────────────────────────────────── */
   async function refresh() {
     const listEl = document.getElementById('hol-year-list');
@@ -293,7 +442,7 @@ const Holidays = (function() {
       const notice = document.getElementById('hol-data-notice');
       if (notice) {
         notice.innerHTML = `<div style="font-size:var(--text-xs);color:var(--text-faint);padding:var(--sp-2) 0">
-          ℹ 數據來源：靜態嵌入 (2024-2026) | Live API blocked by CORS
+          數據來源：香港1823 — 2024–2026年公眾假期
         </div>`;
       }
     }
@@ -308,6 +457,7 @@ const Holidays = (function() {
     renderYearTabs(years);
     renderUpcoming(_allHolidays);
     renderYearList(_activeYear);
+    renderSolarTerms();
   }
 
   return { refresh, showYear };

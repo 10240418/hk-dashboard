@@ -5,6 +5,31 @@
 
 'use strict';
 
+/* ── Relative time helper ──────────────────────────────────── */
+function relativeTime(dateStr) {
+  if (!dateStr) return '';
+  try {
+    // Handle formats like "2026-04-01 17:00:00+08:00" or ISO strings
+    const cleaned = dateStr.replace(' ', 'T');
+    const dt = new Date(cleaned);
+    if (isNaN(dt.getTime())) return dateStr;
+    const now = new Date();
+    const diffMs = now - dt;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHrs = Math.floor(diffMs / 3600000);
+    if (diffMins < 1) return '剛剛更新';
+    if (diffMins < 60) return diffMins + ' 分鐘前更新';
+    if (diffHrs < 24) return diffHrs + ' 小時前更新';
+    // 24+ hours: show actual date
+    return dt.toLocaleDateString('zh-HK', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+  } catch(e) {
+    return dateStr;
+  }
+}
+
+// Expose for use in other modules (health.js etc.)
+window.relativeTime = relativeTime;
+
 const WX_BASE = 'https://data.weather.gov.hk/weatherAPI/opendata/weather.php';
 const ICON_BASE = 'https://www.hko.gov.hk/images/HKOWxIconOutline/pic';
 
@@ -68,8 +93,8 @@ function renderCurrentWeather(d) {
 
   // Update time
   const upd = d.temperature?.recordTime || '';
-  setEl('w-upd', upd ? `更新: ${upd}` : '');
-  setEl('h-wtime', upd ? upd.replace('T', ' ').replace('Z', '') : '');
+  setEl('w-upd', upd ? relativeTime(upd) : '');
+  setEl('h-wtime', upd ? relativeTime(upd) : '');
 
   // Warnings
   const warnArr = d.warningMessage || [];
@@ -308,3 +333,118 @@ function renderWarningInfo(details) {
     `;
   }).join('');
 }
+
+/* ── Weather Warning Banner ─────────────────────────────────── */
+async function fetchWarningBanner() {
+  try {
+    const r = await fetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=warnsum&lang=tc');
+    const data = await r.json();
+    const banner = document.getElementById('warning-banner');
+    const bannerText = document.getElementById('warning-banner-text');
+    if (!banner || !bannerText) return;
+
+    const keys = Object.keys(data || {});
+    if (keys.length === 0) {
+      banner.style.display = 'none';
+      return;
+    }
+
+    const WARN_LABELS = {
+      WTCSGNL: '熱帶氣旋警告',
+      WRAIN:   '暴雨警告',
+      WFROST:  '霜凍警告',
+      WHOT:    '酷熱天氣警告',
+      WCOLD:   '寒冷天氣警告',
+      WWIND:   '強烈季候風信號',
+      WFIRE:   '火災危險警告',
+      WTMW:    '海嘯警告',
+      WL:      '山泥傾瀉警告',
+      WMSGNL:  '強烈季候風信號',
+    };
+
+    // Determine banner style based on warning types/codes
+    let bgStyle = 'linear-gradient(135deg,#7f1d1d,#991b1b)';
+    let borderColor = '#ef4444';
+    let textSize = 'var(--text-sm)';
+    let pulseAnim = 'pulse-warn 2s ease-in-out infinite';
+    let iconHtml = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+
+    // Check for Typhoon Signal 8+
+    const tcEntry = data['WTCSGNL'];
+    if (tcEntry) {
+      const tcCode = (tcEntry.code || '').toString().toUpperCase();
+      const tcNum = parseInt(tcCode.replace('T',''), 10);
+      if (!isNaN(tcNum) && tcNum >= 8) {
+        bgStyle = 'linear-gradient(135deg,#7f0000,#cc0000)';
+        borderColor = '#ff0000';
+        textSize = 'var(--text-lg)';
+        pulseAnim = 'pulse-warn-fast 1s ease-in-out infinite';
+        iconHtml = '<span style="font-size:2rem;flex-shrink:0">🌀</span>';
+      }
+    }
+
+    // Check for rainstorm warnings
+    const rainEntry = data['WRAIN'];
+    if (rainEntry) {
+      const rainCode = (rainEntry.code || '').toString().toUpperCase();
+      if (rainCode === 'WBLA') {
+        bgStyle = 'linear-gradient(135deg,#2d1b69,#4c1d95)';
+        borderColor = '#7c3aed';
+      } else if (rainCode === 'WRED') {
+        bgStyle = 'linear-gradient(135deg,#7c2d12,#c2410c)';
+        borderColor = '#f97316';
+      } else if (rainCode === 'WAMB') {
+        bgStyle = 'linear-gradient(135deg,#78350f,#b45309)';
+        borderColor = '#f59e0b';
+      }
+    }
+
+    const activeWarnings = keys.map(function(k) {
+      const entry = data[k];
+      const label = WARN_LABELS[k] || k;
+      const code  = entry ? (entry.code || entry.type || '') : '';
+      return label + (code ? ' (' + code + ')' : '');
+    });
+
+    bannerText.textContent = '現時生效警告：' + activeWarnings.join(' · ');
+    bannerText.style.fontSize = textSize;
+
+    // Apply dynamic styles
+    banner.style.background = bgStyle;
+    banner.style.borderBottom = '2px solid ' + borderColor;
+    banner.style.animation = pulseAnim;
+
+    // Replace icon
+    const existingIcon = banner.querySelector('.warn-icon');
+    if (existingIcon) {
+      existingIcon.outerHTML = '<span class="warn-icon" style="flex-shrink:0">' + iconHtml + '</span>';
+    }
+
+    banner.style.display = 'flex';
+
+  } catch (e) {
+    // Silently fail — no warning = no banner
+    const banner = document.getElementById('warning-banner');
+    if (banner) banner.style.display = 'none';
+  }
+}
+
+// Add to Weather public API
+const _origWeatherRefresh = window.Weather?.refresh;
+window.Weather = {
+  ...window.Weather,
+  fetchCurrent: fetchCurrentWeather,
+  fetchForecast: fetchForecast,
+  refresh: async function() {
+    await Promise.all([
+      fetchCurrentWeather(),
+      fetchForecast(),
+      fetchWarningBanner(),
+    ]);
+  }
+};
+
+// Also run banner check on init
+fetchWarningBanner();
+// Re-check every 5 minutes
+setInterval(fetchWarningBanner, 300000);

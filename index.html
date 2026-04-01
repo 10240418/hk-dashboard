@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>香港城市儀表板 HK City Dashboard</title>
   <meta name="description" content="香港全方位實時城市數據：天氣、交通、急症室、空氣質素、巴士到站、潮汐、地震、停車場">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d1b2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="HK Dashboard">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/tokens.css">
@@ -31,7 +36,9 @@
     </div>
   </a>
 
-  <div class="nav-tabs" role="tablist">
+  <div class="nav-tabs-wrapper">
+    <button class="nav-scroll-btn" id="nav-scroll-left" onclick="navScroll(-1)" aria-label="向左滾動">‹</button>
+    <div class="nav-tabs" id="nav-tabs" role="tablist">
     <a href="#" class="nav-tab active" data-page="home" onclick="showPage('home')" role="tab">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       總覽
@@ -66,7 +73,7 @@
     </a>
     <a href="#" class="nav-tab" data-page="ferry" onclick="showPage('ferry')" role="tab">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h20"/><path d="M5 20V8l7-5 7 5v12"/><path d="M12 3v17"/><path d="M9 20v-5h6v5"/></svg>
-      渡輪
+      嶼巴
     </a>
     <a href="#" class="nav-tab" data-page="holidays" onclick="showPage('holidays')" role="tab">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -76,10 +83,20 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       氣候
     </a>
+    <a href="#" class="nav-tab" data-page="beach" onclick="showPage('beach')" role="tab">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M3 18h18"/><path d="M12 2v10"/></svg>
+      泳灘
+    </a>
+    <a href="#" class="nav-tab" data-page="map" onclick="showPage('map')" role="tab">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      地圖
+    </a>
     <a href="#" class="nav-tab" data-page="cctv" onclick="showPage('cctv')" role="tab">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
       道路快拍
     </a>
+  </div>
+    <button class="nav-scroll-btn" id="nav-scroll-right" onclick="navScroll(1)" aria-label="向右滾動">›</button>
   </div>
 
   <div class="nav-right">
@@ -94,8 +111,36 @@
   </div>
 </nav>
 
+<!-- ══ OFFLINE BANNER ══ -->
+<div id="offline-banner" style="display:none;position:sticky;top:var(--nav-h);z-index:160;
+     background:linear-gradient(135deg,#92400e,#b45309);color:white;
+     padding:var(--sp-2) var(--sp-6);
+     display:none;align-items:center;justify-content:center;gap:var(--sp-3);
+     font-size:var(--text-sm);font-weight:600;border-bottom:2px solid #f59e0b">
+  <span>📡 目前沒有網絡連線 · 顯示上次緩存數據 No internet connection</span>
+</div>
+
 <!-- ══ PAGES ══ -->
 <div class="page-body">
+
+  <!-- ══ WEATHER WARNING BANNER (shown only when active warnings) ══ -->
+  <div id="warning-banner" style="display:none;position:sticky;top:var(--nav-h);z-index:150;
+       background:linear-gradient(135deg,#7f1d1d,#991b1b);
+       color:white;padding:var(--sp-3) var(--sp-6);
+       display:none;align-items:center;gap:var(--sp-3);
+       border-bottom:2px solid #ef4444;
+       animation:pulse-warn 2s ease-in-out infinite">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <div id="warning-banner-text" style="flex:1;font-weight:600;font-size:var(--text-sm)"></div>
+    <button onclick="document.getElementById('warning-banner').style.display='none'"
+      style="color:white;opacity:.7;font-size:18px;line-height:1">✕</button>
+  </div>
+  <style>@keyframes pulse-warn{0%,100%{opacity:1}50%{opacity:.85}} @keyframes pulse-warn-fast{0%,100%{opacity:1}50%{opacity:.6}}</style>
+
+
 
   <!-- ── HOME PAGE ── -->
   <div id="page-home" class="page active">
@@ -211,6 +256,30 @@
         <div id="h-rain" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:var(--sp-2)"></div>
       </div>
 
+      <!-- Hang Seng Index -->
+      <div class="card" style="grid-column:span 2">
+        <div class="card-head">
+          <div>
+            <div class="card-title">📈 恒生指數 HSI</div>
+            <div class="card-sub" id="fin-hsi-sub">載入中...</div>
+          </div>
+          <span class="card-badge badge-live">● 實時</span>
+        </div>
+        <div id="fin-hsi"></div>
+      </div>
+
+      <!-- Exchange Rates -->
+      <div class="card" style="grid-column:span 2">
+        <div class="card-head">
+          <div>
+            <div class="card-title">💱 港元兌換 Exchange Rates</div>
+            <div class="card-sub" id="fin-fx-sub">載入中...</div>
+          </div>
+          <span class="card-badge badge-source">Frankfurter API</span>
+        </div>
+        <div id="fin-fx" class="row-list"></div>
+      </div>
+
     </div>
   </div>
 
@@ -234,11 +303,11 @@
               <div style="color:var(--text-muted);margin-top:var(--sp-1)" id="w-desc">--</div>
             </div>
           </div>
-          <div style="margin-top:var(--sp-4);display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2)">
+          <div style="margin-top:var(--sp-4);display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:var(--sp-2)">
             <div class="row-item"><span class="row-name">濕度</span><span class="row-val" id="w-hum">--%</span></div>
-            <div class="row-item"><span class="row-name">海水溫</span><span class="row-val" id="w-sea">--°C</span></div>
-            <div class="row-item"><span class="row-name">紫外線</span><span class="row-val" id="w-uv">--</span></div>
-            <div class="row-item"><span class="row-name">更新</span><span class="row-val" id="w-upd" style="font-size:10px;letter-spacing:0">--</span></div>
+            <div class="row-item"><span class="row-name">海水溫度</span><span class="row-val" id="w-sea">--°C</span></div>
+            <div class="row-item"><span class="row-name">紫外線指數</span><span class="row-val" id="w-uv">--</span></div>
+            <div class="row-item"><span class="row-name">更新時間</span><span class="row-val" id="w-upd" style="font-size:10px;letter-spacing:0">--</span></div>
           </div>
         </div>
       </div>
@@ -302,6 +371,15 @@
       <div class="section-hdr" style="grid-column:span 2">
         <div class="section-hdr-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div>
         <div><div class="section-hdr-title-zh">交通資訊</div><div class="section-hdr-title-en">Real-time Transport Information</div></div>
+      </div>
+
+      <!-- MTR Service Status Summary -->
+      <div class="card" style="grid-column:span 2">
+        <div class="card-head">
+          <div><div class="card-title">🚇 MTR服務狀況</div><div class="card-sub">各線即時服務狀態 MTR Line Service Status</div></div>
+          <span class="card-badge badge-live">● 實時</span>
+        </div>
+        <div id="t-mtr-status" class="row-list"></div>
       </div>
 
       <!-- MTR -->
@@ -374,105 +452,117 @@
 
   <!-- ── BUS PAGE ── -->
   <div id="page-bus" class="page">
-    <div class="dash-grid" style="grid-template-columns:repeat(2,1fr)">
+    <div class="dash-grid" style="grid-template-columns:1fr">
 
-      <div class="section-hdr" style="grid-column:span 2">
+      <div class="section-hdr">
         <div class="section-hdr-icon">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="17" r="1.5" fill="currentColor"/><circle cx="17" cy="17" r="1.5" fill="currentColor"/></svg>
         </div>
-        <div><div class="section-hdr-title-zh">巴士到站時間</div><div class="section-hdr-title-en">Bus ETA · CTB / KMB / GMB</div></div>
-      </div>
-
-      <!-- Preset common stops -->
-      <div class="card" style="grid-column:span 2">
-        <div class="card-head">
-          <div><div class="card-title">常用站點 Preset Stops</div><div class="card-sub">新界常用路線到站時間</div></div>
-          <span class="card-badge badge-live">● 實時</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--sp-3)" id="bus-presets-grid">
-          <!-- Injected by JS -->
-          <div class="skel" style="height:80px;border-radius:var(--r-lg)"></div>
-          <div class="skel" style="height:80px;border-radius:var(--r-lg)"></div>
-          <div class="skel" style="height:80px;border-radius:var(--r-lg)"></div>
+        <div>
+          <div class="section-hdr-title-zh">巴士到站時間</div>
+          <div class="section-hdr-title-en">Bus ETA · KMB / CTB / GMB</div>
         </div>
       </div>
 
-      <!-- KMB custom search -->
+      <!-- ① 路線搜尋 (主功能) -->
       <div class="card">
         <div class="card-head">
-          <div><div class="card-title">🟥 九巴 KMB 查詢</div><div class="card-sub">輸入站 ID 及路線號</div></div>
-          <span class="card-badge badge-live">● 實時</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:var(--sp-3);margin-bottom:var(--sp-4)">
-          <div style="display:flex;gap:var(--sp-2)">
-            <div style="flex:2">
-              <div style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:4px">站 ID (Stop ID)</div>
-              <input id="bus-kmb-stop" placeholder="e.g. B6FD9CC9258DCF94"
-                style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);color:var(--text);font:inherit;font-size:var(--text-sm)">
-            </div>
-            <div style="flex:1">
-              <div style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:4px">路線 Route</div>
-              <input id="bus-kmb-route" placeholder="e.g. 60X"
-                style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);color:var(--text);font:inherit;font-size:var(--text-sm)">
-            </div>
+          <div>
+            <div class="card-title">🔍 路線查詢 Route Search</div>
+            <div class="card-sub">輸入路線號，自動列出所有站點 → 點擊任何站查看實時到站時間</div>
           </div>
-          <button onclick="Bus.searchKMB()" style="background:var(--primary);color:white;border-radius:var(--r-md);padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:600;align-self:flex-start">查詢 Search</button>
+          <span class="card-badge badge-live">● KMB · CTB</span>
         </div>
-        <div id="bus-kmb-result" class="row-list"></div>
-        <div style="margin-top:var(--sp-3);padding:var(--sp-3);background:var(--surface-2);border-radius:var(--r-md)">
-          <div style="font-size:var(--text-xs);color:var(--text-faint)">
-            常用 KMB 站 ID：<br>
-            屯門市廣場 B6FD9CC9258DCF94 (60X往旺角)<br>
-            屯門站 AC19B3AC5F24B3C6 (68X往荃灣)<br>
-            兆康苑 C3AF3AFC16F22571 (66往元朗)
+
+        <!-- Search box -->
+        <div style="display:flex;gap:var(--sp-2);margin-bottom:var(--sp-4)">
+          <input id="bus-search-input"
+            placeholder="輸入路線號 e.g. 60X、67X、962X、68X…"
+            autocomplete="off" autocorrect="off" autocapitalize="characters"
+            onkeydown="if(event.key==='Enter')BusSearch.search()"
+            style="flex:1;background:var(--surface-2);border:1px solid var(--border);
+                   border-radius:var(--r-md);padding:var(--sp-3) var(--sp-4);
+                   color:var(--text);font:inherit;font-size:var(--text-base);
+                   outline:none;transition:border-color .15s"
+            onfocus="this.style.borderColor='var(--primary)'"
+            onblur="this.style.borderColor='var(--border)'">
+          <button onclick="BusSearch.search()"
+            style="background:var(--primary);color:white;border-radius:var(--r-md);
+                   padding:var(--sp-3) var(--sp-5);font-size:var(--text-sm);
+                   font-weight:700;white-space:nowrap;min-width:72px">
+            搜尋
+          </button>
+        </div>
+
+        <!-- Quick route buttons -->
+        <div style="display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-4)">
+          <span style="font-size:var(--text-xs);color:var(--text-faint);align-self:center">常用路線：</span>
+          <button onclick="document.getElementById('bus-search-input').value='60X';BusSearch.search()"
+            style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:4px 12px;font-size:var(--text-xs);cursor:pointer;color:var(--text)">60X</button>
+          <button onclick="document.getElementById('bus-search-input').value='67X';BusSearch.search()"
+            style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:4px 12px;font-size:var(--text-xs);cursor:pointer;color:var(--text)">67X</button>
+          <button onclick="document.getElementById('bus-search-input').value='66M';BusSearch.search()"
+            style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:4px 12px;font-size:var(--text-xs);cursor:pointer;color:var(--text)">66M</button>
+          <button onclick="document.getElementById('bus-search-input').value='69X';BusSearch.search()"
+            style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:4px 12px;font-size:var(--text-xs);cursor:pointer;color:var(--text)">69X</button>
+          <button onclick="document.getElementById('bus-search-input').value='68X';BusSearch.search()"
+            style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:4px 12px;font-size:var(--text-xs);cursor:pointer;color:var(--text)">68X</button>
+          <button onclick="document.getElementById('bus-search-input').value='962X';BusSearch.search()"
+            style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:4px 12px;font-size:var(--text-xs);cursor:pointer;color:var(--text)">962X</button>
+          <button onclick="document.getElementById('bus-search-input').value='E33';BusSearch.search()"
+            style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:4px 12px;font-size:var(--text-xs);cursor:pointer;color:var(--text)">E33</button>
+        </div>
+
+        <!-- Search result: direction buttons + stop list -->
+        <div id="bus-search-result">
+          <div style="padding:var(--sp-4);text-align:center;color:var(--text-faint);font-size:var(--text-sm)">
+            輸入路線號後按「搜尋」或點選上方常用路線
           </div>
         </div>
       </div>
 
-      <!-- CTB custom search -->
+      <!-- ② ETA 結果面板 (浮動在搜尋結果下) -->
+      <div id="bus-eta-panel" class="card" style="display:none;border:2px solid var(--primary);border-radius:var(--r-xl)">
+      </div>
+
+      <!-- ③ 常用站點快覽 -->
       <div class="card">
         <div class="card-head">
-          <div><div class="card-title">🟢 城巴 CTB 查詢</div><div class="card-sub">輸入站 ID 及路線號</div></div>
-          <span class="card-badge badge-live">● 實時</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:var(--sp-3);margin-bottom:var(--sp-4)">
-          <div style="display:flex;gap:var(--sp-2)">
-            <div style="flex:1">
-              <div style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:4px">站 ID (Stop ID)</div>
-              <input id="bus-ctb-stop" placeholder="e.g. 002248"
-                style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);color:var(--text);font:inherit;font-size:var(--text-sm)">
-            </div>
-            <div style="flex:1">
-              <div style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:4px">路線號 Route</div>
-              <input id="bus-ctb-route" placeholder="e.g. 962B"
-                style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);color:var(--text);font:inherit;font-size:var(--text-sm)">
-            </div>
+          <div>
+            <div class="card-title">⭐ 常用站點 Preset Stops</div>
+            <div class="card-sub">新界常用路線實時班次</div>
           </div>
-          <button onclick="Bus.searchCTB()" style="background:var(--primary);color:white;border-radius:var(--r-md);padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:600;align-self:flex-start">查詢 Search</button>
+          <span class="card-badge badge-live">● 每45秒</span>
         </div>
-        <div id="bus-ctb-result" class="row-list"></div>
-        <div style="margin-top:var(--sp-3);padding:var(--sp-3);background:var(--surface-2);border-radius:var(--r-md)">
-          <div style="font-size:var(--text-xs);color:var(--text-faint)">
-            常用 CTB 站 ID：<br>
-            銅鑼灣 001313 (962往屯門)<br>
-            屯門公路轉車站 002248 (962B往銅鑼灣)
-          </div>
+        <div id="bus-presets-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--sp-3)">
+          <div class="skel" style="height:80px;border-radius:var(--r-lg)"></div>
+          <div class="skel" style="height:80px;border-radius:var(--r-lg)"></div>
+          <div class="skel" style="height:80px;border-radius:var(--r-lg)"></div>
         </div>
       </div>
 
-      <!-- GMB Green Minibus -->
-      <div class="card" style="grid-column:span 2">
+      <!-- ④ 專線小巴 GMB -->
+      <div class="card">
         <div class="card-head">
-          <div><div class="card-title">🟩 專線小巴 GMB Green Minibus</div><div class="card-sub">選擇地區瀏覽路線</div></div>
+          <div>
+            <div class="card-title">🟩 專線小巴 GMB Green Minibus</div>
+            <div class="card-sub">選擇地區瀏覽路線 → 選站查看到站時間</div>
+          </div>
           <span class="card-badge badge-live">● 實時</span>
         </div>
         <div style="display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-4)">
-          <select id="gmb-region" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);color:var(--text);font:inherit;font-size:var(--text-sm)">
+          <select id="gmb-region"
+            style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);
+                   padding:var(--sp-2) var(--sp-3);color:var(--text);font:inherit;font-size:var(--text-sm)">
             <option value="NT">新界 New Territories</option>
             <option value="KLN">九龍 Kowloon</option>
             <option value="HKI">港島 Hong Kong Island</option>
           </select>
-          <button onclick="Bus.loadGMBRegion()" style="background:var(--primary);color:white;border-radius:var(--r-md);padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:600">載入路線</button>
+          <button onclick="Bus_GMB.loadRoutes()"
+            style="background:var(--primary);color:white;border-radius:var(--r-md);
+                   padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:600">
+            載入路線
+          </button>
         </div>
         <div id="gmb-routes-list" style="margin-bottom:var(--sp-4)">
           <div style="color:var(--text-faint);font-size:var(--text-xs)">選擇地區後點擊「載入路線」</div>
@@ -513,7 +603,7 @@
             <option value="MWC">馬灣 Ma Wan</option>
             <option value="TBT">大埔滘 Tai Po Kau</option>
             <option value="TPK">塔門 Tap Mun</option>
-            <option value="TMW">屯門 Tuen Mun</option>
+            <option value="TMW" selected>屯門 Tuen Mun</option>
           </select>
           <span id="tide-station-name" style="font-size:var(--text-sm);color:var(--primary);font-weight:600"></span>
         </div>
@@ -696,6 +786,105 @@
     </div>
   </div>
 
+
+  <!-- ── BEACH WATER QUALITY PAGE ── -->
+  <div id="page-beach" class="page">
+    <div class="dash-grid" style="grid-template-columns:1fr">
+
+      <div class="section-hdr">
+        <div class="section-hdr-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M3 18h18"/><path d="M12 2v10"/></svg>
+        </div>
+        <div><div class="section-hdr-title-zh">泳灘水質</div><div class="section-hdr-title-en">Beach Water Quality · 環保署 EPD</div></div>
+      </div>
+
+      <!-- Summary -->
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">全港泳灘概況</div><div class="card-sub">42個法定泳灘 · 腸球菌水質監測</div></div>
+          <span class="card-badge badge-source">環保署</span>
+        </div>
+        <div id="beach-summary"><div class="skel skel-p"></div></div>
+      </div>
+
+      <!-- Filter -->
+      <div class="card">
+        <div class="card-head"><div class="card-title">篩選 Filter</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-3)" id="beach-regions"></div>
+        <div style="display:flex;gap:var(--sp-2);flex-wrap:wrap">
+          <input id="beach-search" placeholder="搜尋泳灘名稱…" oninput="Beach.filterSearch()"
+            style="flex:1;min-width:160px;background:var(--surface-2);border:1px solid var(--border);
+                   border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);
+                   color:var(--text);font:inherit;font-size:var(--text-sm)">
+          <span id="beach-count" style="font-size:var(--text-xs);color:var(--text-faint);align-self:center"></span>
+        </div>
+      </div>
+
+      <!-- Beach list -->
+      <div id="beach-list">
+        <div class="skel skel-p" style="margin-bottom:8px"></div>
+        <div class="skel skel-p" style="margin-bottom:8px;width:70%"></div>
+      </div>
+
+      <!-- Grade guide -->
+      <div class="card">
+        <div class="card-head"><div class="card-title">水質等級說明 Grade Reference</div></div>
+        <div id="beach-guide"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── MAP PAGE ── -->
+  <div id="page-map" class="page">
+    <div class="dash-grid" style="grid-template-columns:1fr">
+
+      <div class="section-hdr">
+        <div class="section-hdr-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+        </div>
+        <div><div class="section-hdr-title-zh">互動地圖</div><div class="section-hdr-title-en">Interactive Map · 停車場 / AQHI / 泳灘</div></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div><div class="card-title">地圖圖層 Map Layer</div></div>
+        </div>
+        <div style="display:flex;gap:var(--sp-2);flex-wrap:wrap;margin-bottom:var(--sp-4)">
+          <button class="map-tab" data-layer="parking" onclick="MapView.switchLayer('parking')"
+            style="background:var(--primary);color:white;border:none;border-radius:var(--r-md);
+                   padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:600;cursor:pointer">
+            🅿 停車場空位
+          </button>
+          <button class="map-tab" data-layer="aqhi" onclick="MapView.switchLayer('aqhi')"
+            style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+                   border-radius:var(--r-md);padding:var(--sp-2) var(--sp-4);
+                   font-size:var(--text-sm);font-weight:600;cursor:pointer">
+            🌬 空氣質素 AQHI
+          </button>
+          <button class="map-tab" data-layer="beach" onclick="MapView.switchLayer('beach')"
+            style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+                   border-radius:var(--r-md);padding:var(--sp-2) var(--sp-4);
+                   font-size:var(--text-sm);font-weight:600;cursor:pointer">
+            🏖 泳灘水質
+          </button>
+          <button class="map-tab" data-layer="aed" onclick="MapView.switchLayer('aed')"
+            style="background:var(--surface-2);color:var(--text);border:1px solid var(--border);
+                   border-radius:var(--r-md);padding:var(--sp-2) var(--sp-4);
+                   font-size:var(--text-sm);font-weight:600;cursor:pointer">
+            🩺 AED 心臟除颫器
+          </button>
+        </div>
+        <div id="map-status" style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:var(--sp-2)">
+          載入地圖中…
+        </div>
+        <!-- Map container -->
+        <div id="map-container" style="height:520px;border-radius:var(--r-lg);overflow:hidden;background:var(--surface-2)"></div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ── CCTV PAGE ── -->
   <div id="page-cctv" class="page">
     <div class="dash-grid" style="grid-template-columns:1fr">
@@ -707,24 +896,35 @@
 
       <div class="card">
         <div class="card-head">
-          <div><div class="card-title">即時道路影像</div><div class="card-sub">輸入攝影機代碼查看即時快拍（每分鐘更新）</div></div>
+          <div><div class="card-title">即時道路影像 Live Traffic Cameras</div><div class="card-sub">點選攝影機即可查看即時快拍（每分鐘自動更新）</div></div>
           <span class="card-badge badge-live">● 每分鐘</span>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:var(--sp-2);margin-bottom:var(--sp-5)">
-          <button class="cctv-btn" onclick="loadCCTV('B001','博覽館收費廣場')" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--text-xs);color:var(--text)">博覽館</button>
-          <button class="cctv-btn" onclick="loadCCTV('BC101F','葵涌道東行')" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--text-xs);color:var(--text)">葵涌道</button>
-          <button class="cctv-btn" onclick="loadCCTV('TMO101','屯門公路1')" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--text-xs);color:var(--text)">屯門公路</button>
-          <button class="cctv-btn" onclick="loadCCTV('CW101','城門隧道')" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--text-xs);color:var(--text)">城門隧道</button>
-          <button class="cctv-btn" onclick="loadCCTV('LT101','獅子山隧道')" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--text-xs);color:var(--text)">獅子山隧道</button>
-          <button class="cctv-btn" onclick="loadCCTV('CBT101','海底隧道')" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--text-xs);color:var(--text)">海底隧道</button>
-          <button class="cctv-btn" onclick="loadCCTV('TC101','大老山隧道')" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--text-xs);color:var(--text)">大老山隧道</button>
-          <button class="cctv-btn" onclick="loadCCTV('AB101','長青隧道')" style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);font-size:var(--text-xs);color:var(--text)">長青隧道</button>
+
+        <!-- Camera area picker (populated by cctv.js) -->
+        <div id="cctv-area-grid" style="margin-bottom:var(--sp-4)"></div>
+
+        <!-- Custom code input -->
+        <div style="display:flex;gap:var(--sp-2);margin-bottom:var(--sp-4);flex-wrap:wrap">
+          <input id="cctv-input" placeholder="自訂攝影機代碼 e.g. BC101F"
+            style="flex:1;min-width:180px;background:var(--surface-2);border:1px solid var(--border);
+                   border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);
+                   color:var(--text);font:inherit;font-size:var(--text-sm)" />
+          <button onclick="loadCCTVInput()"
+            style="background:var(--primary);color:white;border-radius:var(--r-md);
+                   padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:600">
+            查看 View
+          </button>
         </div>
-        <div style="display:flex;gap:var(--sp-2);margin-bottom:var(--sp-4)">
-          <input id="cctv-input" placeholder="輸入攝影機代碼 e.g. BC101F" style="flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);color:var(--text);font:inherit;font-size:var(--text-sm)" />
-          <button onclick="loadCCTVInput()" style="background:var(--primary);color:white;border-radius:var(--r-md);padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:600">查看</button>
+
+        <!-- Image grid -->
+        <div id="cctv-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:var(--sp-4)"></div>
+
+        <div style="margin-top:var(--sp-3);padding:var(--sp-3);background:var(--surface-2);border-radius:var(--r-md)">
+          <div style="font-size:var(--text-xs);color:var(--text-faint);line-height:1.6">
+            ℹ 已確認可用攝影機：青葵公路、城門隧道、大老山隧道/公路、觀塘繞道、元朗公路<br>
+            資料來源：香港運輸署 Transport Department
+          </div>
         </div>
-        <div id="cctv-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:var(--sp-4)"></div>
       </div>
     </div>
   </div>
@@ -737,8 +937,8 @@
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20"/><path d="M5 20V8l7-5 7 5v12"/><path d="M12 3v17"/><path d="M9 20v-5h6v5"/></svg>
         </div>
         <div>
-          <div class="section-hdr-title-zh">渡輪服務 Ferry Services</div>
-          <div class="section-hdr-title-en">New Lantao Bus (NLB) — 64 routes</div>
+          <div class="section-hdr-title-zh">大嶼山巴士 NLB 路線</div>
+          <div class="section-hdr-title-en">New Lantao Bus (NLB) · 嶼巴 · 64 條路線</div>
         </div>
       </div>
 
@@ -815,6 +1015,20 @@
             <div class="skel skel-p"></div>
             <div class="skel skel-p" style="margin-top:8px"></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Solar Terms -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">二十四節氣 Solar Terms</div>
+            <div class="card-sub">中國傳統氣候領法 Traditional Chinese Calendar</div>
+          </div>
+          <span class="card-badge badge-source">2025–2026</span>
+        </div>
+        <div id="hol-solar-terms">
+          <div class="skel skel-p"></div>
         </div>
       </div>
 
@@ -899,6 +1113,73 @@
     </div>
   </div>
 
+  <!-- WASTE PAGE -->
+  <div id="page-waste" class="page">
+    <div class="dash-grid">
+      <div class="section-hdr">
+        <div class="section-hdr-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        </div>
+        <div>
+          <div class="section-hdr-title-zh">廢物回收</div>
+          <div class="section-hdr-title-en">Waste &amp; Recycling Info</div>
+        </div>
+      </div>
+
+      <!-- Collection status -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">今日垃圾收集 Today's Collection</div>
+            <div class="card-sub">一般廢物收集 General Waste</div>
+          </div>
+          <span class="card-badge badge-source">港府</span>
+        </div>
+        <div id="waste-collection-status">
+          <div class="skel skel-p"></div>
+        </div>
+      </div>
+
+      <!-- Recycling guide -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">三色回收桶 Recycling Bins</div>
+            <div class="card-sub">蓝=廢紙 黃=金屬 癒=膠樽</div>
+          </div>
+          <span class="card-badge badge-source">環保署 EPD</span>
+        </div>
+        <div id="waste-recycling-guide">
+          <div class="skel skel-p"></div>
+        </div>
+      </div>
+
+      <!-- District info -->
+      <div class="card">
+        <div class="card-head">
+          <span class="card-title">地區回收資訊 District Recycling Info</span>
+        </div>
+        <div id="waste-district-info">
+          <div class="skel skel-p"></div>
+        </div>
+      </div>
+
+      <!-- Special services -->
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">特殊回收服務 Special Collection Services</div>
+            <div class="card-sub">大件廢物 / 廢電池 / 廢電腦 / 廨館源</div>
+          </div>
+          <span class="card-badge badge-source">環保署 EPD</span>
+        </div>
+        <div id="waste-special-services">
+          <div class="skel skel-p"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div><!-- end page-body -->
 
 <!-- ══ FOOTER ══ -->
@@ -914,6 +1195,8 @@
       <a href="https://data.etabus.gov.hk/" target="_blank" rel="noopener">九巴 KMB</a>
       <a href="https://rt.data.gov.hk/" target="_blank" rel="noopener">城巴 CTB</a>
       <a href="https://data.etagmb.gov.hk/" target="_blank" rel="noopener">專線小巴 GMB</a>
+      <a href="https://www.nlb.com.hk/" target="_blank" rel="noopener">嶼巴 NLB</a>
+      <a href="https://www.1823.gov.hk/" target="_blank" rel="noopener">1823 假期</a>
     </div>
     <div>每分鐘自動更新 · Auto-refresh every 60s</div>
   </div>
@@ -931,6 +1214,91 @@
 <script src="js/ferry.js"></script>
 <script src="js/holidays.js"></script>
 <script src="js/climate.js"></script>
+<script src="js/beach.js"></script>
+<script src="js/map.js"></script>
+<script src="js/finance.js"></script>
+<script src="js/waste.js"></script>
 <script src="js/app.js"></script>
+<script>
+  // Register Service Worker (PWA)
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        console.log('[PWA] Service Worker registered:', reg.scope);
+      }).catch(err => {
+        console.log('[PWA] SW registration failed:', err);
+      });
+    });
+  }
+</script>
+
+<!-- ══ MOBILE BOTTOM NAV ══ -->
+<nav class="bottom-nav" role="navigation" aria-label="頁面導航">
+  <div class="bottom-nav-inner">
+    <!-- Row 1: 7 items -->
+    <button class="bottom-nav-item active" data-page="home" onclick="showPage('home')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      總覽
+    </button>
+    <button class="bottom-nav-item" data-page="weather" onclick="showPage('weather')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      天氣
+    </button>
+    <button class="bottom-nav-item" data-page="transport" onclick="showPage('transport')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      交通
+    </button>
+    <button class="bottom-nav-item" data-page="bus" onclick="showPage('bus')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="7" cy="17" r="1.5" fill="currentColor"/><circle cx="17" cy="17" r="1.5" fill="currentColor"/></svg>
+      巴士
+    </button>
+    <button class="bottom-nav-item" data-page="health" onclick="showPage('health')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      醫療
+    </button>
+    <button class="bottom-nav-item" data-page="environment" onclick="showPage('environment')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      環境
+    </button>
+    <button class="bottom-nav-item" data-page="parking" onclick="showPage('parking')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 0 1 0 6H9"/></svg>
+      停車場
+    </button>
+    <!-- Row 2: 7 items -->
+    <button class="bottom-nav-item" data-page="tides" onclick="showPage('tides')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M2 18c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>
+      潮汐
+    </button>
+    <button class="bottom-nav-item" data-page="beach" onclick="showPage('beach')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M3 18h18"/><path d="M12 2v10"/></svg>
+      泳灘
+    </button>
+    <button class="bottom-nav-item" data-page="map" onclick="showPage('map')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      地圖
+    </button>
+    <button class="bottom-nav-item" data-page="ferry" onclick="showPage('ferry')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20"/><path d="M5 20V8l7-5 7 5v12"/><path d="M12 3v17"/><path d="M9 20v-5h6v5"/></svg>
+      嶼巴
+    </button>
+    <button class="bottom-nav-item" data-page="holidays" onclick="showPage('holidays')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      假期
+    </button>
+    <button class="bottom-nav-item" data-page="climate" onclick="showPage('climate')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      氣候
+    </button>
+    <button class="bottom-nav-item" data-page="cctv" onclick="showPage('cctv')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+      快拍
+    </button>
+    <button class="bottom-nav-item" data-page="waste" onclick="showPage('waste')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+      回收
+    </button>
+  </div>
+</nav>
+
 </body>
 </html>

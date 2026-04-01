@@ -201,6 +201,76 @@ const Climate = (function() {
     return { data: rows };
   }
 
+  /* ── Render 12-month bar chart ────────────────────────────── */
+  function render12MonthBar(monthlyAvgs) {
+    const el = document.getElementById('climate-monthly-bar');
+    if (!el || !monthlyAvgs.length) return;
+
+    const maxT = Math.max(...monthlyAvgs.map(m => m.avg));
+    const minT = Math.min(...monthlyAvgs.map(m => m.avg));
+
+    // Title for the chart area
+    const titleEl = document.getElementById('climate-temp-title');
+    if (titleEl && monthlyAvgs.length > 0) {
+      const first = monthlyAvgs[0];
+      const last  = monthlyAvgs[monthlyAvgs.length - 1];
+      titleEl.textContent = `過去 ${monthlyAvgs.length} 個月月平均氣溫 — ${MONTHS_EN[first.month - 1]} ${first.year} – ${MONTHS_EN[last.month - 1]} ${last.year}`;
+    }
+
+    el.innerHTML = monthlyAvgs.map(m => {
+      const pct = maxT === minT ? 0.5 : (m.avg - minT) / (maxT - minT);
+      const barH = Math.round(20 + pct * 80);
+      // Color gradient: cool blue → warm red
+      const r = Math.round(96 + pct * 152);
+      const g = Math.round(165 - pct * 100);
+      const b = Math.round(250 - pct * 200);
+      return `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:42px">
+          <div style="font-size:10px;font-weight:600;color:rgb(${r},${g},${b});font-family:var(--font-mono)">${m.avg}°</div>
+          <div style="width:28px;height:${barH}px;background:rgb(${r},${g},${b});border-radius:4px 4px 0 0;opacity:0.85"></div>
+          <div style="font-size:9px;color:var(--text-faint);text-align:center;line-height:1.2">
+            ${MONTHS_EN[(m.month - 1) % 12] || ''}<br>
+            <span style="font-size:8px;opacity:.7">${m.year}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /* ── Render summary stats for 12 months ───────────────────── */
+  function render12MonthStats(monthlyAvgs) {
+    const chartEl = document.getElementById('climate-temp-chart');
+    if (!chartEl || !monthlyAvgs.length) return;
+
+    const avgs = monthlyAvgs.map(m => m.avg);
+    const overallAvg = (avgs.reduce((a,b) => a+b,0) / avgs.length).toFixed(1);
+    const maxM = monthlyAvgs.reduce((a,b) => a.avg > b.avg ? a : b);
+    const minM = monthlyAvgs.reduce((a,b) => a.avg < b.avg ? a : b);
+
+    chartEl.innerHTML = `
+      <div style="display:flex;gap:var(--sp-4);flex-wrap:wrap;margin-bottom:var(--sp-4)">
+        <div style="text-align:center">
+          <div style="font-size:var(--text-xs);color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">12月均 Avg</div>
+          <div style="font-family:var(--font-mono);font-size:var(--text-xl);font-weight:700;color:var(--primary)">${overallAvg}°C</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:var(--text-xs);color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">最熱月 Hottest</div>
+          <div style="font-family:var(--font-mono);font-size:var(--text-xl);font-weight:700;color:var(--error)">${maxM.avg}°C</div>
+          <div style="font-size:var(--text-xs);color:var(--text-faint)">${MONTHS_EN[(maxM.month-1)%12]} ${maxM.year}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:var(--text-xs);color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">最涼月 Coolest</div>
+          <div style="font-family:var(--font-mono);font-size:var(--text-xl);font-weight:700;color:var(--info)">${minM.avg}°C</div>
+          <div style="font-size:var(--text-xs);color:var(--text-faint)">${MONTHS_EN[(minM.month-1)%12]} ${minM.year}</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:var(--text-xs);color:var(--text-faint);text-transform:uppercase;letter-spacing:.05em">月份數 Months</div>
+          <div style="font-family:var(--font-mono);font-size:var(--text-xl);font-weight:700;color:var(--text)">${monthlyAvgs.length}</div>
+        </div>
+      </div>
+    `;
+  }
+
   /* ── Main refresh ──────────────────────────────────────────── */
   async function refresh() {
     const chartEl = document.getElementById('climate-temp-chart');
@@ -209,59 +279,46 @@ const Climate = (function() {
     chartEl.innerHTML = `<div class="skel skel-p" style="margin-bottom:8px"></div><div class="skel skel-p" style="width:60%"></div>`;
 
     const now = new Date();
-    const year  = now.getFullYear();
-    const month = now.getMonth() + 1;
+    const curYear  = now.getFullYear();
+    const curMonth = now.getMonth() + 1;
 
     renderFacts();
 
-    // Fetch most recent month with data (look back up to 4 months)
-    try {
-      let rows = [];
-      let displayYear = year;
-      let displayMonth = month;
-      let m = month;
-      let y = year;
-      for (let attempts = 0; attempts < 4 && !rows.length; attempts++) {
-        const data = await fetchMonthlyTemp(y, m);
-        rows = data.data || [];
-        if (rows.length) {
-          displayYear = y;
-          displayMonth = m;
-        } else {
-          // Go back one month
-          m = m === 1 ? 12 : m - 1;
-          y = m === 12 ? y - 1 : y;
-        }
-      }
-      renderTempChart(rows, displayYear, displayMonth);
-    } catch(e) {
-      chartEl.innerHTML = `<div style="color:var(--error);font-size:var(--text-sm);padding:var(--sp-4)">氣溫數據載入失敗 ${e.message}</div>`;
+    // Build list of last 12 months (going back from current month)
+    const monthList = [];
+    for (let i = 0; i < 12; i++) {
+      let m = curMonth - i;
+      let y = curYear;
+      if (m <= 0) { m += 12; y -= 1; }
+      monthList.unshift({ year: y, month: m });
     }
 
-    // Fetch all 12 months for the year bar chart (or at least up to current month)
-    const monthlyFetches = [];
-    for (let m = 1; m <= month; m++) {
-      monthlyFetches.push(
-        fetchMonthlyTemp(year, m)
-          .then(data => {
-            const rows = data.data || [];
-            if (!rows.length) return null;
-            const vals = rows.map(d => parseFloat(d.Value || d.value || 0)).filter(v => !isNaN(v) && v !== 0);
-            if (!vals.length) return null;
-            const avg = parseFloat((vals.reduce((a,b) => a+b,0) / vals.length).toFixed(1));
-            return { month: m, avg };
-          })
-          .catch(() => null)
-      );
-    }
+    // Fetch all 12 months in parallel
+    const fetches = monthList.map(({ year, month }) =>
+      fetchMonthlyTemp(year, month)
+        .then(data => {
+          const rows = data.data || [];
+          if (!rows.length) return null;
+          const vals = rows
+            .map(d => parseFloat(d.Value || d.value || 0))
+            .filter(v => !isNaN(v) && v !== 0);
+          if (!vals.length) return null;
+          const avg = parseFloat((vals.reduce((a,b) => a+b,0) / vals.length).toFixed(1));
+          return { year, month, avg };
+        })
+        .catch(() => null)
+    );
 
-    const results = await Promise.allSettled(monthlyFetches);
+    const results = await Promise.allSettled(fetches);
     const monthlyAvgs = results
       .map(r => r.status === 'fulfilled' ? r.value : null)
       .filter(Boolean);
 
     if (monthlyAvgs.length > 0) {
-      renderMonthlyBar(monthlyAvgs);
+      render12MonthStats(monthlyAvgs);
+      render12MonthBar(monthlyAvgs);
+    } else {
+      chartEl.innerHTML = `<div style="color:var(--text-faint);font-size:var(--text-sm);padding:var(--sp-4)">暫無近期氣溫數據</div>`;
     }
 
     // Render seasonal reference table

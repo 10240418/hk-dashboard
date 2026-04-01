@@ -69,7 +69,10 @@ async function fetchAED() {
     const list = d.waitTime || [];
     const upd  = d.updateTime || '';
 
-    if (updEl) updEl.textContent = upd ? '更新時間：' + upd : '';
+    if (updEl) {
+      const rtFn = typeof window.relativeTime === 'function' ? window.relativeTime : function(s) { return s; };
+      updEl.textContent = upd ? rtFn(upd) : '';
+    }
 
     // Home mini — show 5 hospitals
     if (miniEl && list.length) {

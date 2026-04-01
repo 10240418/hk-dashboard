@@ -5,6 +5,71 @@
 
 'use strict';
 
+/* ── Offline / Online Detection ──────────────────────────────────── */
+(function initOfflineDetection() {
+  // Create the offline banner element
+  function getOrCreateBanner() {
+    let el = document.getElementById('offline-banner');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'offline-banner';
+    el.style.cssText = [
+      'display:none',
+      'position:fixed',
+      'top:0',
+      'left:0',
+      'right:0',
+      'z-index:9999',
+      'background:linear-gradient(135deg,#78350f,#92400e)',
+      'color:white',
+      'padding:10px 20px',
+      'text-align:center',
+      'font-size:14px',
+      'font-weight:600',
+      'border-bottom:2px solid #f59e0b',
+    ].join(';');
+    el.textContent = '\u26a0 \u76ee\u524d\u6c92\u6709\u7db2\u7d61\u9023\u7dda \u00b7 \u986f\u793a\u4e0a\u6b21\u7de9\u5b58\u6578\u64da';
+    // Insert before page-body or at start of body
+    const pageBody = document.querySelector('.page-body');
+    if (pageBody) {
+      pageBody.parentNode.insertBefore(el, pageBody);
+    } else if (document.body) {
+      document.body.insertBefore(el, document.body.firstChild);
+    }
+    return el;
+  }
+
+  function showOfflineBanner() {
+    const banner = getOrCreateBanner();
+    banner.style.display = 'block';
+  }
+
+  function hideOfflineBanner() {
+    const banner = document.getElementById('offline-banner');
+    if (banner) banner.style.display = 'none';
+  }
+
+  // Check initial state after DOM ready
+  document.addEventListener('DOMContentLoaded', function() {
+    getOrCreateBanner();
+    if (!navigator.onLine) {
+      showOfflineBanner();
+    }
+  });
+
+  window.addEventListener('offline', function() {
+    showOfflineBanner();
+  });
+
+  window.addEventListener('online', function() {
+    hideOfflineBanner();
+    // Auto-refresh all data when connection restored
+    console.log('[HK Dashboard] Back online — refreshing data…');
+    if (typeof loadAllData === 'function') loadAllData();
+  });
+})();
+
+
 /* ── Bootstrap ───────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('[HK Dashboard v4] Initialising…');
@@ -31,30 +96,14 @@ async function loadAllData() {
     safeRun('Transport',    () => Transport.refresh()),
     safeRun('Health',       () => Health.refresh()),
     safeRun('Environment',  () => Environment.refresh()),
+    safeRun('Finance',      () => typeof Finance !== 'undefined' ? Finance.refresh() : Promise.resolve()),
   ]);
 }
 
 /* ── Bus preset init ──────────────────────────────────────────── */
 function initBusPresets() {
-  const grid = document.getElementById('bus-presets-grid');
-  if (!grid || typeof Bus === 'undefined') return;
-
-  const presets = Bus.getPresets();
-  grid.innerHTML = presets.map((p, i) => `
-    <div class="card" style="padding:var(--sp-3)">
-      <div style="display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2)">
-        <span class="tag ${p.operator === 'KMB' ? 'tag-red' : 'tag-green'}"
-          style="font-size:10px;font-weight:700">${p.operator}</span>
-        <span style="font-size:var(--text-sm);font-weight:600">${p.label}</span>
-      </div>
-      <div style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:var(--sp-2)">路線 ${p.route} ${p.hint}</div>
-      <div id="bus-preset-${i}" class="row-list">
-        <div class="skel skel-p"></div>
-      </div>
-    </div>
-  `).join('');
-
-  // Load data
+  if (typeof Bus === 'undefined') return;
+  // Bus.refresh() now handles rendering preset grid internally
   safeRun('Bus', () => Bus.refresh());
 }
 
@@ -129,11 +178,19 @@ window.showPage = function(name) {
       }
       break;
     case 'ferry':
-      // Load on first visit
       if (!window._ferryLoaded) {
         window._ferryLoaded = true;
         safeRun('Ferry', () => Ferry.refresh());
       }
+      break;
+    case 'beach':
+      if (!window._beachLoaded) {
+        window._beachLoaded = true;
+        safeRun('Beach', () => Beach.refresh());
+      }
+      break;
+    case 'map':
+      safeRun('Map', () => MapView.refresh());
       break;
     case 'holidays':
       // Load on first visit
@@ -150,6 +207,12 @@ window.showPage = function(name) {
       }
       break;
     // CCTV: don't auto-load, let user choose cameras
+    case 'waste':
+      if (!window._wasteLoaded) {
+        window._wasteLoaded = true;
+        safeRun('Waste', () => Waste.refresh());
+      }
+      break;
   }
 };
 
@@ -208,4 +271,135 @@ async function loadWeatherForecastText() {
 
   setTimeout(updateIndicator, 2000);
   setInterval(updateIndicator, 60000);
+})();
+
+/* ── PWA Install Prompt ──────────────────────────────────────── */
+(function initPWAPrompt() {
+  let _deferredPrompt = null;
+
+  // iOS detection
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  const isInStandaloneMode = window.navigator.standalone === true
+    || window.matchMedia('(display-mode: standalone)').matches;
+
+  // Don't show if already installed or already shown this session
+  if (isInStandaloneMode) return;
+
+  function createBanner(message, onInstall, onDismiss) {
+    const existing = document.getElementById('pwa-install-banner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.id = 'pwa-install-banner';
+    banner.style.cssText = `
+      position: fixed;
+      bottom: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: min(420px, calc(100vw - 32px));
+      width: 100%;
+      animation: slideUp 0.3s ease;
+    `;
+
+    banner.innerHTML = `
+      <span style="font-size:1.4rem">📱</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:var(--text-sm);font-weight:600;color:var(--text)">
+          加入主屏幕 Add to Home Screen
+        </div>
+        <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:2px;line-height:1.4">
+          ${message}
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-shrink:0">
+        ${onInstall ? `<button id="pwa-install-btn"
+          style="background:var(--primary);color:white;border:none;border-radius:var(--r-md);
+                 padding:6px 14px;font-size:var(--text-xs);font-weight:700;cursor:pointer">
+          安裝
+        </button>` : ''}
+        <button id="pwa-dismiss-btn"
+          style="background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border);
+                 border-radius:var(--r-md);padding:6px 10px;font-size:var(--text-xs);cursor:pointer">
+          ✕
+        </button>
+      </div>
+    `;
+
+    document.body.appendChild(banner);
+
+    if (onInstall) {
+      document.getElementById('pwa-install-btn')?.addEventListener('click', () => {
+        onInstall();
+        banner.remove();
+      });
+    }
+
+    document.getElementById('pwa-dismiss-btn')?.addEventListener('click', () => {
+      onDismiss?.();
+      banner.remove();
+    });
+  }
+
+  // Android/Chrome: listen for beforeinstallprompt
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    _deferredPrompt = e;
+
+    if (window._pwaPromptShown) return;
+    window._pwaPromptShown = true;
+
+    // Delay slightly to not interrupt initial load
+    setTimeout(() => {
+      createBanner(
+        '像App一樣使用 — 快速存取、離線瀏覽',
+        async () => {
+          if (_deferredPrompt) {
+            _deferredPrompt.prompt();
+            const { outcome } = await _deferredPrompt.userChoice;
+            _deferredPrompt = null;
+            console.log('[PWA] Install outcome:', outcome);
+          }
+        },
+        () => { console.log('[PWA] Prompt dismissed'); }
+      );
+    }, 3000);
+  });
+
+  // iOS: show manual instructions (no beforeinstallprompt event)
+  if (isIOS) {
+    if (window._pwaPromptShown) return;
+
+    setTimeout(() => {
+      if (window._pwaPromptShown) return;
+      window._pwaPromptShown = true;
+
+      createBanner(
+        '點擊 Safari 分享按鈕 → 加入主畫面',
+        null, // no programmatic install on iOS
+        () => { console.log('[PWA] iOS prompt dismissed'); }
+      );
+    }, 4000);
+  }
+
+  // Add slideUp animation if not present
+  if (!document.getElementById('pwa-style')) {
+    const style = document.createElement('style');
+    style.id = 'pwa-style';
+    style.textContent = `
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+        to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
 })();

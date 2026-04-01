@@ -19,7 +19,7 @@ const Tides = (function() {
     { code:'TMW', name:'屯門 Tuen Mun' },
   ];
 
-  let _currentStation = 'CCH';
+  let _currentStation = 'TMW';
 
   /* ── Fetch current month tide data ──────────────────────────── */
   async function fetchTideData(station) {

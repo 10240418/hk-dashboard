@@ -33,9 +33,21 @@ p, li { text-wrap: pretty; }
 .logo-name-zh { font-size: var(--text-sm); font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
 .logo-name-en { font-size: var(--text-xs); color: var(--text-muted); }
 
+.nav-tabs-wrapper {
+  display: flex; align-items: center; flex: 1; min-width: 0; position: relative;
+}
+.nav-scroll-btn {
+  display: none; align-items: center; justify-content: center;
+  width: 28px; height: 28px; flex-shrink: 0; border-radius: var(--r-md);
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer; z-index: 1; font-size: 14px;
+  transition: background .15s, color .15s;
+}
+.nav-scroll-btn:hover { background: var(--primary-lt); color: var(--primary); }
 .nav-tabs {
-  display: flex; align-items: center; gap: 2px; flex: 1;
+  display: flex; align-items: center; gap: 2px; flex: 1; min-width: 0;
   overflow-x: auto; scrollbar-width: none;
+  scroll-behavior: smooth;
 }
 .nav-tabs::-webkit-scrollbar { display: none; }
 .nav-tab {
@@ -53,7 +65,7 @@ p, li { text-wrap: pretty; }
 
 .nav-right {
   display: flex; align-items: center; gap: var(--sp-3);
-  flex-shrink: 0; margin-left: auto;
+  flex-shrink: 0;
 }
 .clock-block { text-align: right; }
 .clock-hms { font-family: var(--font-mono); font-size: var(--text-base); font-weight: 600; color: var(--text); letter-spacing: 0.04em; }
@@ -224,3 +236,155 @@ p, li { text-wrap: pretty; }
   .gcol2, .gcol3, .gcol4 { grid-column: span 1; }
   .card { padding: var(--sp-4); }
 }
+
+/* ===== MOBILE RESPONSIVE — OVERRIDE INLINE STYLES ===== */
+@media (max-width: 700px) {
+  /* Force ALL inline-style grids to single column on mobile */
+  .dash-grid > * { grid-column: 1 / -1 !important; }
+  .dash-grid [style*="grid-column:span"],
+  .dash-grid [style*="grid-column: span"] { grid-column: 1 / -1 !important; }
+
+  /* Home page 4-col → 2-col mini stats */
+  #page-home .dash-grid > div:nth-child(-n+4) {
+    grid-column: span 1 !important;
+  }
+  #page-home .dash-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Transport: stack MTR + LRT vertically */
+  #page-transport .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Weather: single column */
+  #page-weather .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Tides: single column */
+  #page-tides .dash-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Parking grid: 1 col */
+  #parking-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Bus presets: 1 col */
+  #bus-presets-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Health: 1 col */
+  #page-health .dash-grid,
+  #h-aed-full {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Environment: 1 col */
+  #page-environment .dash-grid,
+  #e-aqhi {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Temperature / rain grids */
+  #h-temps, #w-temps, #h-rain, #w-rain {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* Forecast chips: allow horizontal scroll */
+  .scroll-row { padding-bottom: var(--sp-3); }
+
+  /* Section header: compress */
+  .section-hdr-title-zh { font-size: var(--text-lg) !important; }
+
+  /* Nav: hide clock date, lunar on very small */
+  .clock-hms { font-size: var(--text-sm) !important; }
+
+  /* CCTV grid: full width */
+  #cctv-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Big number: smaller on mobile */
+  .big-num { font-size: var(--text-2xl) !important; }
+
+  /* Input rows: stack vertically */
+  .dash-grid [style*="display:flex"][style*="gap"] {
+    flex-wrap: wrap !important;
+  }
+
+  /* Card padding reduce */
+  .card { padding: var(--sp-3) !important; }
+
+  /* Hide dock on very small */
+  .topnav-logo .logo-name-zh { font-size: 12px !important; }
+
+  /* Minimum readable font size on mobile */
+  .row-name, .row-val, .row-sub { font-size: 13px !important; min-font-size: 13px; }
+  .tag { font-size: 11px !important; }
+  .card-sub { font-size: 12px !important; }
+  .section-hdr-title-en { font-size: 12px !important; }
+}
+
+/* ===== BOTTOM NAV FOR MOBILE ===== */
+.bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 300;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  padding: var(--sp-2) 0 calc(var(--sp-2) + env(safe-area-inset-bottom, 0px));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.bottom-nav::-webkit-scrollbar { display: none; }
+.bottom-nav-inner {
+  display: flex;
+  gap: 0;
+  min-width: max-content;
+  padding: 0 var(--sp-2);
+}
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  min-width: 52px;
+  transition: background .15s;
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  font-family: inherit;
+}
+.bottom-nav-item svg { flex-shrink: 0; }
+.bottom-nav-item.active { color: var(--primary); background: var(--primary-lt); }
+.bottom-nav-item:hover { background: var(--surface-2); }
+
+@media (max-width: 700px) {
+  .bottom-nav { display: block; }
+  /* Add padding to page body so content isn't hidden behind bottom nav */
+  .page-body { padding-bottom: 72px; }
+  .site-footer { padding-bottom: calc(var(--sp-5) + 72px); }
+  /* Hide top nav tabs on mobile to save space */
+  .nav-tabs { display: none !important; }
+}
+
+/* ===== NAV SCROLL ARROWS ===== */
+@media (min-width: 701px) {
+  .nav-scroll-btn { display: flex; }
+}
+/* On mobile, bottom nav handles navigation, hide top nav tabs entirely */
