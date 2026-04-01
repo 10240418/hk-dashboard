@@ -5,17 +5,18 @@
 
 'use strict';
 
-/* ── Theme ─────────────────────────────────────────────── */
+/* ── Theme (in-memory, no browser storage) ──────────── */
+window._hkdbTheme = 'dark';
+
 (function initTheme() {
-  const saved = localStorage.getItem('hkdb-theme') || 'dark';
-  document.documentElement.setAttribute('data-theme', saved);
+  document.documentElement.setAttribute('data-theme', window._hkdbTheme);
   const btn = document.querySelector('[data-theme-toggle]');
   if (!btn) return;
-  btn.addEventListener('click', () => {
+  btn.addEventListener('click', function() {
     const cur = document.documentElement.getAttribute('data-theme');
     const next = cur === 'dark' ? 'light' : 'dark';
     document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('hkdb-theme', next);
+    window._hkdbTheme = next;
   });
 })();
 

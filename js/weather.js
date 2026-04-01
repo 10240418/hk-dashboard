@@ -224,7 +224,87 @@ function setImgSrc(id, src) {
 window.Weather = {
   fetchCurrent: fetchCurrentWeather,
   fetchForecast: fetchForecast,
+  fetchWarnsum: fetchWarnsum,
   refresh: async function() {
-    await Promise.all([fetchCurrentWeather(), fetchForecast()]);
+    await Promise.all([fetchCurrentWeather(), fetchForecast(), fetchWarnsum()]);
   }
 };
+
+/* ── Fetch weather warning summary (warnsum) ─────────────────── */
+async function fetchWarnsum() {
+  try {
+    const url = `${WX_BASE}?dataType=warnsum&lang=tc`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    // warnsum returns {} when no active warnings — check explicitly
+    if (!data || Object.keys(data).length === 0) {
+      renderWarnsum(null);
+      return;
+    }
+    renderWarnsum(data);
+    // Fetch detailed warningInfo if there are active warnings
+    await fetchWarningInfo();
+  } catch(e) {
+    console.error('Warnsum fetch error:', e);
+  }
+}
+
+/* ── Fetch warning info detail (warningInfo) ─────────────────── */
+async function fetchWarningInfo() {
+  try {
+    const url = `${WX_BASE}?dataType=warningInfo&lang=tc`;
+    const res = await fetch(url);
+    if (!res.ok) return;
+    const data = await res.json();
+    const details = data.details || [];
+    renderWarningInfo(details);
+  } catch(e) {
+    console.error('WarningInfo fetch error:', e);
+  }
+}
+
+/* ── Render warnsum ──────────────────────────────────────────── */
+function renderWarnsum(data) {
+  const el = document.getElementById('w-warnsum');
+  if (!el) return;
+  if (!data || Object.keys(data).length === 0) {
+    el.innerHTML = `<div class="row-item"><span style="color:var(--success)">✅ 目前沒有生效的天氣警告 No active warnings</span></div>`;
+    return;
+  }
+  const warnings = Object.values(data);
+  el.innerHTML = warnings.map(w => {
+    const name = w.name || w.type || '警告';
+    const code = w.code || '';
+    const issueTime = w.issueTime || '';
+    const actionCode = w.actionCode || '';
+    const tagClass = actionCode === 'ISSUE' ? 'tag-red' : actionCode === 'UPDATE' ? 'tag-yellow' : 'tag-muted';
+    return `
+      <div class="row-item" style="flex-direction:column;align-items:flex-start;gap:4px">
+        <div style="display:flex;align-items:center;gap:var(--sp-2)">
+          <span class="tag ${tagClass}">${code || actionCode}</span>
+          <span style="font-weight:600;font-size:var(--text-sm)">${name}</span>
+        </div>
+        ${issueTime ? `<div style="font-size:var(--text-xs);color:var(--text-faint)">發布時間 ${issueTime}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+/* ── Render warningInfo details ─────────────────────────────── */
+function renderWarningInfo(details) {
+  const el = document.getElementById('w-warning-details');
+  if (!el || !details.length) return;
+  el.innerHTML = details.map(d => {
+    const contents = d.contents || [];
+    return `
+      <div class="card" style="border-color:var(--warning);margin-top:var(--sp-3)">
+        <div style="font-weight:700;color:var(--warning);margin-bottom:var(--sp-2)">${d.warningStatementCode || d.subtype || '警告'}</div>
+        ${contents.map(c => {
+          const lines = c.value || [];
+          return lines.map(line => `<div style="font-size:var(--text-sm);color:var(--text-muted);line-height:1.6;margin-bottom:4px">${line}</div>`).join('');
+        }).join('')}
+      </div>
+    `;
+  }).join('');
+}
