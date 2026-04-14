@@ -145,8 +145,8 @@ A comprehensive, real-time open-source city dashboard for Hong Kong using 100% g
 | 停車場空位 | data.gov.hk | `api.data.gov.hk` |
 | 泳灘水質 | 環保署 EPD | 靜態數據（季度更新） |
 | 公眾假期 | 1823 | `1823.gov.hk` |
-| 恒生指數 | Yahoo Finance | `query1.finance.yahoo.com` |
-| 匯率 | Frankfurter | `api.frankfurter.app` |
+| 恒生指數 | Stooq（經代理） | `stooq.com` |
+| 匯率 | Frankfurter | `api.frankfurter.dev` |
 | 道路快拍 CCTV | 運輸署 | `tdcctv.data.one.gov.hk` |
 
 > 所有數據來自香港政府官方開放數據平台 [data.gov.hk](https://data.gov.hk)，完全免費使用。
@@ -164,11 +164,11 @@ A comprehensive, real-time open-source city dashboard for Hong Kong using 100% g
 git clone https://github.com/badboyhong/hk-dashboard.git
 cd hk-dashboard
 
-# Serve locally (Python)
-python3 -m http.server 8080
+# Serve locally with the dev proxy (recommended)
+python3 dev_server.py 8080
 
-# Or with Node.js
-npx serve .
+# Static-only preview (some browser-blocked APIs like holidays / HSI may not load)
+python3 -m http.server 8080
 ```
 
 打開 `http://localhost:8080`
@@ -295,7 +295,7 @@ MIT License — 免費使用、修改、分發。
 - [醫院管理局 HA](https://www.ha.org.hk/) — 急症室數據
 - [香港鐵路 MTR](https://opendata.mtr.com.hk/) — 班次數據
 - [Leaflet.js](https://leafletjs.com/) — 開源地圖庫
-- [Frankfurter](https://www.frankfurter.app/) — 免費匯率 API
+- [Frankfurter](https://frankfurter.dev/) — 免費匯率 API
 
 ---
 

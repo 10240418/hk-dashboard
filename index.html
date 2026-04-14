@@ -8,6 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1b2e">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="HK Dashboard">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1202,28 +1203,46 @@
   </div>
 </footer>
 
-<script src="js/core.js"></script>
-<script src="js/weather.js"></script>
-<script src="js/transport.js"></script>
-<script src="js/health.js"></script>
-<script src="js/environment.js"></script>
-<script src="js/cctv.js"></script>
-<script src="js/bus.js"></script>
-<script src="js/tides.js"></script>
-<script src="js/parking.js"></script>
-<script src="js/ferry.js"></script>
-<script src="js/holidays.js"></script>
-<script src="js/climate.js"></script>
-<script src="js/beach.js"></script>
-<script src="js/map.js"></script>
-<script src="js/finance.js"></script>
-<script src="js/waste.js"></script>
-<script src="js/app.js"></script>
+<script src="js/core.js?v=202604142"></script>
+<script src="js/weather.js?v=202604142"></script>
+<script src="js/transport.js?v=202604142"></script>
+<script src="js/health.js?v=202604142"></script>
+<script src="js/environment.js?v=202604142"></script>
+<script src="js/cctv.js?v=202604142"></script>
+<script src="js/bus.js?v=202604142"></script>
+<script src="js/tides.js?v=202604142"></script>
+<script src="js/parking.js?v=202604142"></script>
+<script src="js/ferry.js?v=202604142"></script>
+<script src="js/holidays.js?v=202604142"></script>
+<script src="js/climate.js?v=202604142"></script>
+<script src="js/beach.js?v=202604142"></script>
+<script src="js/map.js?v=202604142"></script>
+<script src="js/finance.js?v=202604142"></script>
+<script src="js/waste.js?v=202604142"></script>
+<script src="js/app.js?v=202604142"></script>
 <script>
   // Register Service Worker (PWA)
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then(reg => {
+    window.addEventListener('load', async () => {
+      const isLocalDev = ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
+
+      if (isLocalDev) {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(reg => reg.unregister()));
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(key => key.indexOf('hk-dashboard-') === 0).map(key => caches.delete(key)));
+          }
+          console.log('[PWA] Local dev mode: service workers disabled and caches cleared.');
+        } catch (err) {
+          console.log('[PWA] Local dev cleanup failed:', err);
+        }
+        return;
+      }
+
+      navigator.serviceWorker.register('/sw.js?v=20260414', { updateViaCache: 'none' }).then(reg => {
+        reg.update();
         console.log('[PWA] Service Worker registered:', reg.scope);
       }).catch(err => {
         console.log('[PWA] SW registration failed:', err);

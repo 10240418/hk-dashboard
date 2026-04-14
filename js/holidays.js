@@ -7,7 +7,9 @@
 
 const Holidays = (function() {
 
+  const IS_LOCAL_DEV = typeof window !== 'undefined' && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname);
   const API_URL = 'https://www.1823.gov.hk/common/ical/tc.json';
+  const LOCAL_HOLIDAYS_API = '/api/holidays';
 
   // Static fallback data (2024-2026) from data.gov.hk / 1823.gov.hk
   // Used when the live API is blocked by CORS in browser context
@@ -256,6 +258,51 @@ const Holidays = (function() {
     }).filter(h => !isNaN(h.date.getTime())).sort((a, b) => a.date - b.date);
   }
 
+  function setDataNotice(message) {
+    const notice = document.getElementById('hol-data-notice');
+    if (!notice) return;
+    notice.innerHTML = `<div style="font-size:var(--text-xs);color:var(--text-faint);padding:var(--sp-2) 0">${escHtml(message)}</div>`;
+  }
+
+  function parseHolidayPayload(data) {
+    const events = data && data.vcalendar && data.vcalendar[0] && data.vcalendar[0].vevent
+      ? data.vcalendar[0].vevent
+      : [];
+
+    return events
+      .map(function (ev) {
+        const date = parseDtstart(ev.dtstart);
+        const name = parseSummary(ev.summary);
+        if (!date) return null;
+        return { date, name };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.date - b.date);
+  }
+
+  async function fetchLiveHolidayData() {
+    if (!IS_LOCAL_DEV) {
+      return null;
+    }
+
+    try {
+      const res = await fetch(LOCAL_HOLIDAYS_API, { cache: 'no-store' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const holidays = parseHolidayPayload(data);
+      if (holidays.length) {
+        return {
+          holidays: holidays,
+          sourceLabel: '香港1823 本地代理'
+        };
+      }
+    } catch (e) {
+      console.warn('[Holidays] Live source failed:', API_URL, e.message);
+    }
+
+    return null;
+  }
+
 
   /* ── Solar terms 二十四節氣 ────────────────────────────────── */
   const SOLAR_TERMS_2025 = [
@@ -411,40 +458,14 @@ const Holidays = (function() {
     if (!listEl) return;
     listEl.innerHTML = `<div class="skel skel-p" style="margin-bottom:8px"></div><div class="skel skel-p" style="margin-bottom:8px;width:70%"></div>`;
 
-    let loaded = false;
+    const liveData = await fetchLiveHolidayData();
 
-    // Try live API first (works when served from same origin / CORS-enabled host)
-    try {
-      const res = await fetch(API_URL);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const events = data?.vcalendar?.[0]?.vevent || [];
-      if (events.length > 0) {
-        _allHolidays = events
-          .map(ev => {
-            const date = parseDtstart(ev.dtstart);
-            const name = parseSummary(ev.summary);
-            if (!date) return null;
-            return { date, name };
-          })
-          .filter(Boolean)
-          .sort((a, b) => a.date - b.date);
-        loaded = true;
-      }
-    } catch(e) {
-      console.warn('[Holidays] Live API blocked (CORS), using static data:', e.message);
-    }
-
-    // Fall back to static embedded data
-    if (!loaded) {
+    if (liveData) {
+      _allHolidays = liveData.holidays;
+      setDataNotice(`數據來源：${liveData.sourceLabel}`);
+    } else {
       _allHolidays = parseStaticHolidays(STATIC_HOLIDAYS);
-      // Show a notice
-      const notice = document.getElementById('hol-data-notice');
-      if (notice) {
-        notice.innerHTML = `<div style="font-size:var(--text-xs);color:var(--text-faint);padding:var(--sp-2) 0">
-          數據來源：香港1823 — 2024–2026年公眾假期
-        </div>`;
-      }
+      setDataNotice('數據來源：香港1823 靜態備援資料（2024–2026 年公眾假期）');
     }
 
     const years = [...new Set(_allHolidays.map(h => h.date.getFullYear()))].sort();
