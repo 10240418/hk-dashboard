@@ -21,6 +21,8 @@ USER_AGENT = "hk-dashboard-dev-server/1.0"
 FX_URL = "https://api.frankfurter.dev/v1/latest?base=HKD&symbols=USD,CNY,GBP,JPY,EUR"
 HSI_URL = "https://stooq.com/q/l/?s=%5Ehsi&i=d"
 HOLIDAYS_URL = "https://www.1823.gov.hk/common/ical/tc.json"
+BORDER_RESIDENT_URL = "https://secure1.info.gov.hk/immd/mobileapps/2bb9ae17/data/CPQueueTimeR.json"
+BORDER_VISITOR_URL = "https://secure1.info.gov.hk/immd/mobileapps/2bb9ae17/data/CPQueueTimeV.json"
 
 _CACHE: dict[str, tuple[float, Any]] = {}
 
@@ -117,6 +119,18 @@ class DevHandler(SimpleHTTPRequestHandler):
             )
             return
 
+        if path == "/api/border/resident":
+            self._write_json(
+                lambda: cached_fetch("border_resident", 120, lambda: fetch_remote(BORDER_RESIDENT_URL, expect_json=True))
+            )
+            return
+
+        if path == "/api/border/visitor":
+            self._write_json(
+                lambda: cached_fetch("border_visitor", 120, lambda: fetch_remote(BORDER_VISITOR_URL, expect_json=True))
+            )
+            return
+
         super().do_GET()
 
     def _write_json(self, loader: Callable[[], Any]) -> None:
@@ -144,10 +158,13 @@ class DevHandler(SimpleHTTPRequestHandler):
 
 def main() -> None:
     port = DEFAULT_PORT
+    host = "0.0.0.0"
     if len(sys.argv) > 1:
         port = int(sys.argv[1])
+    if len(sys.argv) > 2:
+        host = sys.argv[2]
 
-    server = ThreadingHTTPServer(("0.0.0.0", port), DevHandler)
+    server = ThreadingHTTPServer((host, port), DevHandler)
     print(f"Serving HK Dashboard dev server on http://127.0.0.1:{port}")
     try:
         server.serve_forever()

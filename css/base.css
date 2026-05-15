@@ -183,6 +183,62 @@ p, li { text-wrap: pretty; }
 .row-val  { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text); font-weight: 700; }
 .row-sub  { font-size: var(--text-xs); color: var(--text-muted); }
 
+/* ===== TRANSPORT SECONDARY NAV ===== */
+.transport-subnav {
+  position: sticky;
+  top: var(--nav-h);
+  z-index: 120;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.transport-subnav-inner {
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--sp-3) var(--sp-6);
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.transport-subnav-inner::-webkit-scrollbar {
+  display: none;
+}
+.transport-mode-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  min-height: 34px;
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  transition: background var(--transition), border-color var(--transition), color var(--transition);
+  white-space: nowrap;
+}
+.transport-mode-tab:hover { background: var(--surface-3); color: var(--text); }
+.transport-mode-tab.active { background: var(--primary-lt); border-color: var(--primary); color: var(--primary); }
+.transport-panel {
+  display: none;
+  grid-column: 1 / -1;
+}
+.transport-panel.active {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-5);
+}
+.transport-panel-single.active { grid-template-columns: 1fr; }
+.transport-slot {
+  display: grid;
+  gap: var(--sp-5);
+}
+
 /* ===== SCROLLABLE ROW ===== */
 .scroll-row { display: flex; gap: var(--sp-3); overflow-x: auto; padding-bottom: var(--sp-2); scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 .scroll-row::-webkit-scrollbar { height: 4px; }
@@ -253,7 +309,8 @@ p, li { text-wrap: pretty; }
   }
 
   /* Transport: stack MTR + LRT vertically */
-  #page-transport .dash-grid {
+  #page-transport .dash-grid,
+  .transport-panel.active {
     grid-template-columns: 1fr !important;
   }
 
@@ -314,6 +371,17 @@ p, li { text-wrap: pretty; }
   /* Input rows: stack vertically */
   .dash-grid [style*="display:flex"][style*="gap"] {
     flex-wrap: wrap !important;
+  }
+
+  .transport-subnav {
+    top: var(--nav-h);
+  }
+  .transport-subnav-inner {
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .transport-mode-tab {
+    font-size: 12px;
+    min-height: 32px;
   }
 
   /* Card padding reduce */

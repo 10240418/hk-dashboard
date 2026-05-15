@@ -74,6 +74,8 @@
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('[HK Dashboard v4] Initialising…');
 
+  initTransportPageComposition();
+
   // 1. Show home page
   showPage('home');
 
@@ -106,6 +108,90 @@ function initBusPresets() {
   // Bus.refresh() now handles rendering preset grid internally
   safeRun('Bus', () => Bus.refresh());
 }
+
+/* ── Transport page composition ─────────────────────────────── */
+function initTransportPageComposition() {
+  movePageChildrenToSlot('page-bus', 'transport-bus-slot');
+  movePageChildrenToSlot('page-ferry', 'transport-nlb-slot');
+  movePageChildrenToSlot('page-sunferry', 'transport-sunferry-slot');
+}
+
+function movePageChildrenToSlot(pageId, slotId) {
+  const page = document.getElementById(pageId);
+  const slot = document.getElementById(slotId);
+  if (!page || !slot || slot.dataset.mounted === '1') return;
+  const grid = page.querySelector('.dash-grid');
+  if (!grid) return;
+  const children = Array.from(grid.children);
+  children.forEach(child => slot.appendChild(child));
+  slot.dataset.mounted = '1';
+}
+
+const TransportTabs = (function() {
+  const loaded = {};
+
+  function hasContent(id) {
+    const el = document.getElementById(id);
+    return !!el && !!el.textContent.replace(/\s+/g, '').trim() && !el.querySelector('.skel');
+  }
+
+  function show(name) {
+    if (name === 'rail') name = 'mtr';
+    if (name === 'ferries') name = 'sunferry';
+    document.querySelectorAll('.transport-mode-tab').forEach(tab => {
+      tab.classList.toggle('active', tab.dataset.transportTab === name);
+    });
+    document.querySelectorAll('.transport-panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === `transport-panel-${name}`);
+    });
+    window._currentTransportTab = name;
+    load(name);
+  }
+
+  function load(name) {
+    if (name === 'rail') name = 'mtr';
+    if (name === 'ferries') name = 'sunferry';
+
+    if (name === 'mtr') {
+      safeRun('Transport', () => Transport.refresh());
+      return;
+    }
+    if (loaded[name]) return;
+    loaded[name] = true;
+    switch (name) {
+      case 'bus':
+        safeRun('Bus', () => Bus.refresh());
+        break;
+      case 'nlb':
+        safeRun('Ferry', () => Ferry.refresh());
+        break;
+      case 'sunferry':
+        safeRun('SunFerry', () => SunFerry.refresh());
+        break;
+      case 'hkkf':
+        safeRun('HKKF', () => HKKF.refresh());
+        break;
+      case 'border':
+        safeRun('Border', () => Border.refresh());
+        break;
+      case 'road':
+        safeRun('Road', () => Road.refresh());
+        break;
+    }
+  }
+
+  function refreshCurrent() {
+    const tab = window._currentTransportTab || 'mtr';
+    if (tab === 'sunferry' && !hasContent('sunferry-summary')) {
+      safeRun('SunFerry', () => SunFerry.refresh());
+      return;
+    }
+    load(tab);
+  }
+
+  return { show, refreshCurrent };
+})();
+window.TransportTabs = TransportTabs;
 
 /* ── Auto-refresh ────────────────────────────────────────────── */
 function startAutoRefresh() {
@@ -156,7 +242,7 @@ window.showPage = function(name) {
       loadWeatherForecastText();
       break;
     case 'transport':
-      safeRun('Transport', () => Transport.refresh());
+      TransportTabs.refreshCurrent();
       break;
     case 'health':
       safeRun('Health', () => Health.refresh());
@@ -165,7 +251,8 @@ window.showPage = function(name) {
       safeRun('Environment', () => Environment.refresh());
       break;
     case 'bus':
-      // Only reload if presets are empty
+      showPage('transport');
+      TransportTabs.show('bus');
       break;
     case 'tides':
       safeRun('Tides', () => Tides.refresh());
@@ -178,16 +265,12 @@ window.showPage = function(name) {
       }
       break;
     case 'ferry':
-      if (!window._ferryLoaded) {
-        window._ferryLoaded = true;
-        safeRun('Ferry', () => Ferry.refresh());
-      }
+      showPage('transport');
+      TransportTabs.show('nlb');
       break;
     case 'sunferry':
-      if (!window._sunFerryLoaded) {
-        window._sunFerryLoaded = true;
-        safeRun('SunFerry', () => SunFerry.refresh());
-      }
+      showPage('transport');
+      TransportTabs.show('sunferry');
       break;
     case 'beach':
       if (!window._beachLoaded) {
