@@ -183,6 +183,12 @@ window.showPage = function(name) {
         safeRun('Ferry', () => Ferry.refresh());
       }
       break;
+    case 'sunferry':
+      if (!window._sunFerryLoaded) {
+        window._sunFerryLoaded = true;
+        safeRun('SunFerry', () => SunFerry.refresh());
+      }
+      break;
     case 'beach':
       if (!window._beachLoaded) {
         window._beachLoaded = true;

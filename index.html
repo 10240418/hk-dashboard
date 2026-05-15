@@ -76,6 +76,10 @@
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20h20"/><path d="M5 20V8l7-5 7 5v12"/><path d="M12 3v17"/><path d="M9 20v-5h6v5"/></svg>
       嶼巴
     </a>
+    <a href="#" class="nav-tab" data-page="sunferry" onclick="showPage('sunferry')" role="tab">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18h18"/><path d="M4 14h16l-2 4H6l-2-4z"/><path d="M7 14V9h10v5"/><path d="M9 9V6h6v3"/><path d="M2 21c2-2 4-2 6 0s4 2 6 0 4-2 8 0"/></svg>
+      輪船
+    </a>
     <a href="#" class="nav-tab" data-page="holidays" onclick="showPage('holidays')" role="tab">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       假期
@@ -979,6 +983,75 @@
     </div>
   </div>
 
+  <!-- ══ SUN FERRY ETA PAGE ══ -->
+  <div id="page-sunferry" class="page">
+    <div class="dash-grid">
+      <div class="section-hdr">
+        <div class="section-hdr-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M4 14h16l-2 4H6l-2-4z"/><path d="M7 14V9h10v5"/><path d="M9 9V6h6v3"/><path d="M2 21c2-2 4-2 6 0s4 2 6 0 4-2 8 0"/></svg>
+        </div>
+        <div>
+          <div class="section-hdr-title-zh">輪船到站時間</div>
+          <div class="section-hdr-title-en">Sun Ferry ETA · 新渡輪即時預計抵達時間</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">航線篩選 Route Filter</div>
+            <div class="card-sub">中環、長洲、梅窩、北角、紅磡、九龍城及橫水渡航線</div>
+          </div>
+          <span class="card-badge badge-live">● 實時</span>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:var(--sp-3);flex-wrap:wrap">
+          <div style="flex:1;min-width:220px">
+            <div style="font-size:var(--text-xs);color:var(--text-faint);margin-bottom:4px">航線 Route</div>
+            <select id="sunferry-route" onchange="SunFerry.changeRoute(this.value)"
+              style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--r-md);padding:var(--sp-2) var(--sp-3);color:var(--text);font:inherit;font-size:var(--text-sm)">
+              <option value="all">全部航線 All Routes</option>
+            </select>
+          </div>
+          <button id="sunferry-refresh-btn" onclick="SunFerry.refresh()"
+            style="background:var(--primary);color:white;border-radius:var(--r-md);padding:var(--sp-2) var(--sp-4);font-size:var(--text-sm);font-weight:600">
+            重新載入
+          </button>
+          <a href="https://www.sunferry.com.hk/" target="_blank" rel="noopener"
+            style="font-size:var(--text-xs);color:var(--primary);padding:var(--sp-2) 0">Sun Ferry 官網 →</a>
+        </div>
+        <div id="sunferry-updated" style="margin-top:var(--sp-3);font-size:var(--text-xs);color:var(--text-faint)">尚未載入</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">即時概覽 Live Summary</div>
+            <div class="card-sub">API 版本、航線數量及 ETA 覆蓋情況</div>
+          </div>
+          <span class="card-badge badge-source">Sun Ferry</span>
+        </div>
+        <div id="sunferry-summary">
+          <div class="skel skel-p"></div>
+          <div class="skel skel-p" style="margin-top:8px;width:70%"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">下一班輪船 Next Ferry Trips</div>
+            <div class="card-sub">ETA、開出時間、船隻代碼及航線備註</div>
+          </div>
+        </div>
+        <div id="sunferry-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--sp-3)">
+          <div class="skel" style="height:142px;border-radius:var(--r-lg)"></div>
+          <div class="skel" style="height:142px;border-radius:var(--r-lg)"></div>
+          <div class="skel" style="height:142px;border-radius:var(--r-lg)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ HOLIDAYS PAGE ══ -->
   <div id="page-holidays" class="page">
     <div class="dash-grid">
@@ -1197,6 +1270,7 @@
       <a href="https://rt.data.gov.hk/" target="_blank" rel="noopener">城巴 CTB</a>
       <a href="https://data.etagmb.gov.hk/" target="_blank" rel="noopener">專線小巴 GMB</a>
       <a href="https://www.nlb.com.hk/" target="_blank" rel="noopener">嶼巴 NLB</a>
+      <a href="https://www.sunferry.com.hk/" target="_blank" rel="noopener">新渡輪 Sun Ferry</a>
       <a href="https://www.1823.gov.hk/" target="_blank" rel="noopener">1823 假期</a>
     </div>
     <div>每分鐘自動更新 · Auto-refresh every 60s</div>
@@ -1213,13 +1287,14 @@
 <script src="js/tides.js?v=202604142"></script>
 <script src="js/parking.js?v=202604142"></script>
 <script src="js/ferry.js?v=202604142"></script>
+<script src="js/sunferry.js?v=202605151"></script>
 <script src="js/holidays.js?v=202604142"></script>
 <script src="js/climate.js?v=202604142"></script>
 <script src="js/beach.js?v=202604142"></script>
 <script src="js/map.js?v=202604142"></script>
 <script src="js/finance.js?v=202604142"></script>
 <script src="js/waste.js?v=202604142"></script>
-<script src="js/app.js?v=202604142"></script>
+<script src="js/app.js?v=202605151"></script>
 <script>
   // Register Service Worker (PWA)
   if ('serviceWorker' in navigator) {
@@ -1241,7 +1316,7 @@
         return;
       }
 
-      navigator.serviceWorker.register('/sw.js?v=20260414', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('/sw.js?v=20260515', { updateViaCache: 'none' }).then(reg => {
         reg.update();
         console.log('[PWA] Service Worker registered:', reg.scope);
       }).catch(err => {
@@ -1299,6 +1374,10 @@
     <button class="bottom-nav-item" data-page="ferry" onclick="showPage('ferry')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20h20"/><path d="M5 20V8l7-5 7 5v12"/><path d="M12 3v17"/><path d="M9 20v-5h6v5"/></svg>
       嶼巴
+    </button>
+    <button class="bottom-nav-item" data-page="sunferry" onclick="showPage('sunferry')">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18h18"/><path d="M4 14h16l-2 4H6l-2-4z"/><path d="M7 14V9h10v5"/><path d="M9 9V6h6v3"/><path d="M2 21c2-2 4-2 6 0s4 2 6 0 4-2 8 0"/></svg>
+      輪船
     </button>
     <button class="bottom-nav-item" data-page="holidays" onclick="showPage('holidays')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>

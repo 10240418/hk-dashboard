@@ -3,7 +3,7 @@
    PWA: offline cache + background sync
    ============================================================ */
 
-const CACHE_NAME = 'hk-dashboard-v10';
+const CACHE_NAME = 'hk-dashboard-v11';
 const IS_LOCAL_DEV = ['localhost', '127.0.0.1', '[::1]'].includes(self.location.hostname);
 const STATIC_URLS = [
   '/',
@@ -20,6 +20,7 @@ const STATIC_URLS = [
   '/js/tides.js',
   '/js/parking.js',
   '/js/ferry.js',
+  '/js/sunferry.js',
   '/js/holidays.js',
   '/js/climate.js',
   '/js/beach.js',
@@ -86,6 +87,7 @@ self.addEventListener('fetch', event => {
     'www.1823.gov.hk',
     'api.allorigins.win',
     'tdcctv.data.one.gov.hk',
+    'www.sunferry.com.hk',
   ].some(host => url.hostname.includes(host));
 
   if (isAPI) {
