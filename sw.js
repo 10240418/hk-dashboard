@@ -3,7 +3,7 @@
    PWA: offline cache + background sync
    ============================================================ */
 
-const CACHE_NAME = 'hk-dashboard-v13';
+const CACHE_NAME = 'hk-dashboard-v14';
 const IS_LOCAL_DEV = ['localhost', '127.0.0.1', '[::1]'].includes(self.location.hostname);
 const STATIC_URLS = [
   '/',
@@ -28,7 +28,7 @@ const STATIC_URLS = [
   '/js/climate.js',
   '/js/beach.js',
   '/js/map.js',
-  '/js/app.js',
+  '/js/app.js?v=20261120',
   'https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap',
 ];
 

@@ -76,8 +76,12 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   initTransportPageComposition();
 
-  // 1. Show home page
-  showPage('home');
+  // 1. Open the requested public section, independently of the theme hash.
+  const requestedPage = new URLSearchParams(window.location.search).get('page');
+  const initialPage = ['transport', 'parking', 'health', 'holidays'].includes(requestedPage)
+    ? requestedPage
+    : 'home';
+  showPage(initialPage, true);
 
   // 2. Initial data load (parallel)
   await loadAllData();
@@ -233,7 +237,7 @@ async function safeRun(label, fn) {
 
 /* ── Page change hook ────────────────────────────────────────── */
 const _origShowPage = window.showPage;
-window.showPage = function(name) {
+window.showPage = function(name, initial = false) {
   _origShowPage(name);
   // Trigger immediate refresh for the newly visible page
   switch (name) {
@@ -242,10 +246,10 @@ window.showPage = function(name) {
       loadWeatherForecastText();
       break;
     case 'transport':
-      TransportTabs.refreshCurrent();
+      if (!initial) TransportTabs.refreshCurrent();
       break;
     case 'health':
-      safeRun('Health', () => Health.refresh());
+      if (!initial) safeRun('Health', () => Health.refresh());
       break;
     case 'environment':
       safeRun('Environment', () => Environment.refresh());
